@@ -333,10 +333,6 @@ shm_offt shm_malloc(size_t size)
 		/* get offset to allocated memory */
 		mem_offt_data = get_offset_for_user_by_bmp_data(allocated_bmp_data);
 
-#if DEBUG_SHM
-		print_mem_offt_data(mem_offt_data, pid_file);
-#endif
-
 		allocated_offset = mem_offt_data.offt_to_allocated_mem;
 
 		/* user's offset is memory after the header */
@@ -369,24 +365,6 @@ shm_offt shm_calloc(size_t cnt, size_t size)
 
 	memset((void *)ACCESS_SHM_FOR_USER(allocated_offt), 0, (allocated_size - sizeof(size_t)));
 
-#if DEBUG_SHM
-#define DEREF(ptr) (((uint8_t*) get_shm_user_base()) + (ptr))
-	PRINT_IN_PID_FILE("\n\n IN shm_calloc():\n\n");
-
-	PRINT_IN_PID_FILE("allocated_offt : %zu\n", allocated_offt);
-	PRINT_IN_PID_FILE("allocated size as per header : %zu\n", allocated_size);
-
-	PRINT_IN_PID_FILE("ACCESS_SHM_FOR_USER(%zu) = %zu\n", 0, (size_t)ACCESS_SHM_FOR_USER(0));
-	PRINT_IN_PID_FILE("get_shm_user_base() = %zu\n", (size_t)get_shm_user_base());
-
-	PRINT_IN_PID_FILE("ACCESS_SHM_FOR_USER(%zu) = %zu\n", allocated_offt, (size_t)ACCESS_SHM_FOR_USER(allocated_offt));
-	PRINT_IN_PID_FILE("get_shm_user_base() + %zu = %zu\n", allocated_offt, (size_t)(DEREF(allocated_offt)));
-
-	PRINT_IN_PID_FILE("Should access with %zu - %zu\n", (size_t)(DEREF(allocated_offt)), (size_t)(DEREF(allocated_offt + allocated_size - sizeof(size_t))));
-
-	PRINT_IN_PID_FILE("\n\n shm_calloc() END\n\n");
-#endif
-
 	return (allocated_offt);
 }
 
@@ -397,32 +375,13 @@ void shm_free(shm_offt shm_ptr)
 	struct mem_offt_mgr mem_offt_data;
 	bool did_unset;
 
-#if DEBUG_SHM
-	PRINT_IN_PID_FILE("in shm_free():\n");
-#endif
-
 	mem_offt_data = convert_offset_to_mem_offt_mgr(shm_ptr);
 
 	bmp_data = get_bmp_data_by_mem_offt_data(mem_offt_data);
 
 	blk_mgr = (struct shm_block_mgmt *)ACCESS_SHM_MGMT_BITMAP_NO(bmp_data.bitmap_no);
 
-#if DEBUG_SHM
-	PRINT_IN_PID_FILE("shm_ptr = %zu\n", shm_ptr);
-	print_mem_offt_data(mem_offt_data, pid_file);
-	print_bmp_data(bmp_data, pid_file);
-
-	PRINT_IN_PID_FILE("BUDDY BMP:\n");
-	print_buddy_bitmap(blk_mgr->mgmt_bmp, pid_file);
-#endif
 	did_unset = unset_bit_race_free(blk_mgr->mgmt_bmp, bmp_data.abs_bit_pos);
-
-#if DEBUG_SHM
-	PRINT_IN_PID_FILE("did_unset = %s\n", BTS(did_unset));
-	PRINT_IN_PID_FILE("BUDDY BMP after:\n");
-    print_buddy_bitmap(blk_mgr->mgmt_bmp, pid_file);
-	PRINT_IN_PID_FILE("shm_free() ends:\n");
-#endif
 
 	assert(did_unset);
 }
@@ -502,11 +461,6 @@ bool search_all_bitmaps_for_mem(size_t mem, struct bmp_data_mgr *bmp_data)
 
 	did_find = false;
 
-#if DEBUG_SHM
-	int i = 0;
-#endif
-
-
 	for (cur_blk_mgr = first_blk_mgr ; cur_blk_mgr <= last_blk_mgr ; ++cur_blk_mgr) {
 
 		relative_bit_pos = occupy_mem_in_bitmap(cur_blk_mgr, mem);
@@ -517,17 +471,9 @@ bool search_all_bitmaps_for_mem(size_t mem, struct bmp_data_mgr *bmp_data)
 			bmp_data->relative_bit_pos = relative_bit_pos;
 			bmp_data->abs_bit_pos = get_abs_bit_pos(relative_bit_pos, mem);
 
-#if DEBUG_SHM
-			PRINT_IN_PID_FILE("i = %d\n", i);
-			print_bmp_data(*bmp_data, pid_file);
-#endif
-
 			did_find = true;
 			break;
 		}
-#if DEBUG_SHM
-		++i;
-#endif
 
 	}
 
@@ -599,15 +545,6 @@ int occupy_mem_in_bitmap(struct shm_block_mgmt *blk_mgr, size_t mem)
 	first_set_bit = -1;
 
 	do {	
-
-#if DEBUG_SHM
-		PRINT_IN_PID_FILE("mask = \n");
-		print_buddy_bitmap(mask, pid_file);
-
-		PRINT_IN_PID_FILE("buddy bitmap = \n");
-		print_buddy_bitmap((shm_bitmap *)blk_mgr->mgmt_bmp, pid_file);
-
-#endif
 
 		first_set_bit = shm_bitmap_ffs(mask) - 1;
 
