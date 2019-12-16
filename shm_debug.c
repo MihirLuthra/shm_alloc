@@ -55,6 +55,7 @@ void print_bmp_data(struct bmp_data_mgr bmp_data, FILE *outfile)
 {
 	fprintf(outfile, "bitmap_no : %d\n", bmp_data.bitmap_no);
 	fprintf(outfile, "relative_bit_pos : %d\n", bmp_data.relative_bit_pos);
+	fprintf(outfile, "abs_bit_pos : %d\n", bmp_data.abs_bit_pos);
 	fprintf(outfile, "mem_level : %zu\n", bmp_data.mem_level);
 }
 
@@ -72,7 +73,7 @@ void print_buddy_bitmap(shm_bitmap bmp[BMP_ARR_SIZE], FILE *outfile)
     
     for (int i = 1 ; i < BITMAP_SIZE  ; ++i)
     {   
-        fprintf(outfile, "%zu", (bmp[i/BITS] >> (BITS - (i % BITS) - 1) & (shm_bitmap)1));
+        fprintf(outfile, "%llu", (bmp[i/BITS] >> (BITS - (i % BITS) - 1) & (shm_bitmap)1));
         
         if (is_power_of_two(i+1)) {
             fprintf(outfile, " --> %zu \n", (mem));
@@ -86,7 +87,7 @@ void print_buddy_bitmap(shm_bitmap bmp[BMP_ARR_SIZE], FILE *outfile)
 void print_all_bits(shm_bitmap bmp, FILE *outfile)
 {
     for(int i = BITS - 1 ; i >= 0 ; --i)
-        fprintf(outfile, "%zu", ((shm_bitmap)bmp >> i) & (shm_bitmap)1);
+        fprintf(outfile, "%llu", ((shm_bitmap)bmp >> i) & (shm_bitmap)1);
 
 	fprintf(outfile, "\n");
 }
