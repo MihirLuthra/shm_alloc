@@ -1,18 +1,13 @@
-#include <sys/types.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-
 #include <assert.h>
 
 #include "shm_alloc.h"
-#include "shm_debug.h"
-#include "shm_err.h"
-#include "shm_constants.h"
 
 #include <errno.h>
-#include <fcntl.h>
-#include <libkern/OSAtomic.h>
+#include <libkern/OSAtomicQueue.h>
 #include <pthread.h>
+
+#include "rand_string_generator.h"
+
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -25,23 +20,40 @@
 #define KGRN  "\x1B[32m"
 #define KNRM  "\x1B[0m"
 
-#define PTR(type)             shm_offt
-#define ACCESS(offset, type)  ((type *)((uint8_t *)get_shm_user_base() + (offset)))
+#define errfile stderr
 
-char **strings;
+#define P_ERR(format, ...) \
+	fprintf(errfile, "FILE(%s) : FUNC(%s) : LINE(%d) : errno(%d -> %s): " format "\n", __FILE__, __func__, __LINE__, errno, strerror(errno), ##__VA_ARGS__)
+
+
+
+#if TEST_THE_TEST
+
+#	define PTR(type)             type *
+#	define ACCESS(ptr, type)     ((type *)ptr)
+#	define shm_malloc            malloc
+#	define shm_calloc            calloc
+#	define shm_free              free
+
+#else
+
+#	define PTR(type)             shm_offt
+#	define ACCESS(offset, type)  ((type *)((uint8_t *)get_shm_user_base() + (offset)))
+
+#endif
+
+char **rand_strings;
 long max_idx;
-_Atomic(int) cur_idx = 0;
+_Atomic(long) cur_idx = 0;
 
-OSQueueHead queue = OS_ATOMIC_QUEUE_INIT;
+OSFifoQueueHead queue = OS_ATOMIC_FIFO_QUEUE_INIT;
 
 struct inserted_data_mgr {
-
 	PTR(char) in_shm;
 	int       idx;
 
-	struct inserted_data_mgr * link;
+	struct inserted_data_mgr * link; 
 };
-
 
 struct test_results_mgr {
 	size_t mem_used;
@@ -50,24 +62,18 @@ struct test_results_mgr {
 };
 
 
-//PROTO
-
-void generate_processes(int process_cnt);
-
-char *  generate_rand_str(unsigned long long min_len, unsigned long long max_len);
-
-char ** generate_rand_arr_of_strs(unsigned long long num_str, unsigned long long min_len,
-    unsigned long long max_len);
-
+void   generate_processes(int process_cnt);
 struct test_results_mgr ** spawn_threads_for_test(int thrd_cnt, void *(*tester_func)(void *));
-
-void *tester_func(void *arg);
-
-void display_test_results(struct test_results_mgr **test_results_per_thrd, int thrd_cnt);
+void  *tester_func(void *arg);
+void   display_test_results(struct test_results_mgr **test_results_per_thrd, int thrd_cnt);
 
 
 int main(int argc, char *argv[])
 {
+#if TEST_THE_TEST
+	printf("Testing the working of test with malloc(2), calloc(2) and free(2)\n");
+#endif
+
 	if (argc != 4) {
 		fprintf(stderr, "usage: %s process_count thread_count num_strings\n", argv[0]);
 		exit(EXIT_FAILURE);
@@ -99,9 +105,10 @@ int main(int argc, char *argv[])
 
 	generate_processes(process_count);
 
-	strings = generate_rand_arr_of_strs(max_idx, 1, 300);
+	rand_strings =
+	    generate_rand_arr_of_strs(max_idx, 1, get_shm_max_allocatable_size(), 65, 91);
 
-	if (strings == NULL) {
+	if (rand_strings == NULL) {
 		P_ERR("generate_rand_arr_of_strs() failed");
 		exit(EXIT_FAILURE);
 	}
@@ -110,6 +117,8 @@ int main(int argc, char *argv[])
 	test_results = spawn_threads_for_test(thread_count, tester_func);
 
 	display_test_results(test_results, thread_count);
+
+	free_rand_strings(rand_strings, max_idx);
 
 	int status = 0;
 	while (wait(&status) > 0);
@@ -122,46 +131,6 @@ void generate_processes(int process_cnt)
 	for (int i = 0 ; i < process_cnt - 1 ; ++i)
 		if (fork() == 0)
 			break;
-}
-
-char * generate_rand_str(unsigned long long min_len, unsigned long long max_len)
-{
-	char *str;
-	size_t str_len;
-
-	str_len = rand() % (max_len - min_len + 1) + min_len;
-
-	str = malloc(sizeof(char) * (str_len));
-
-	if (str == NULL) {
-		P_ERR("malloc(2) failed");
-		exit(EXIT_FAILURE);
-	}
-
-	unsigned long long i;
-	for (i = 0 ; i < (str_len-1) ; ++i)
-		str[i] = rand() % (91 - 65 + 1) + 65;
-
-	str[i] = '\0';
-
-	return str;
-}
-
-
-char ** generate_rand_arr_of_strs(unsigned long long num_str, unsigned long long min_len,
-    unsigned long long max_len)
-{
-	char **str_array = malloc(sizeof(char *) * num_str);
-	
-	if (str_array == NULL) {
-		P_ERR("malloc(2) failed");
-		exit(EXIT_FAILURE);
-	}
-
-	for (unsigned long long i = 0 ; i < num_str ; ++i)
-		str_array[i] = generate_rand_str(min_len, max_len);
-
-	return str_array;
 }
 
 
@@ -200,7 +169,7 @@ struct test_results_mgr ** spawn_threads_for_test(int thrd_cnt, void *(*tester_f
 	for (i = 0 ; i < thrd_cnt ; ++i)
 		pthread_join(thrds[i], NULL);
 
-	return test_results;
+	return (test_results);
 }
 
 
@@ -208,7 +177,7 @@ void *tester_func(void *arg)
 {
 	struct test_results_mgr * test_result = arg;
 
-	struct inserted_data_mgr inserted_data, *dequed_data;
+	struct inserted_data_mgr *inserted_data, *dequed_data;
 
 	PTR(char) str;
 	int idx;
@@ -217,42 +186,81 @@ void *tester_func(void *arg)
 	
 	while ((idx = atomic_fetch_add(&cur_idx, 1)) < max_idx) {
 	
-
-		str = shm_calloc(1, strlen(strings[idx]) + 1);
-
-		//PTPRINTF("mem = %zu, mem allocated = %zu, offt = %zu and idx = %d\n", strlen(strings[idx]) + 1, *(ACCESS(str, size_t) - 1), str, idx);
+		str = shm_calloc(1, strlen(rand_strings[idx]) + 1);
 
 		if (str == SHM_NULL) {
-			P_ERR("shm_malloc() : out of memory\n");
+			P_ERR("shm_calloc() : out of memory\n");
 			exit(EXIT_FAILURE);
 		}
 
-		strcpy(ACCESS(str, char), strings[idx]);
+		strcpy(ACCESS(str, char), rand_strings[idx]);
 
-		inserted_data.idx     = idx;
-		inserted_data.in_shm  = str;
+		inserted_data = malloc(sizeof(struct inserted_data_mgr));
 
-		OSAtomicEnqueue(&queue, &inserted_data, offsetof(struct inserted_data_mgr, link));
+		if (inserted_data == NULL) {
+			P_ERR("malloc(2) failed");
+			exit(EXIT_FAILURE);
+		}
+
+		inserted_data->idx      = idx;
+		inserted_data->in_shm   = str;
+
+		OSAtomicFifoEnqueue(&queue, inserted_data, offsetof(struct inserted_data_mgr, link));
 
 		sleep(0);
 
-		dequed_data = OSAtomicDequeue(&queue, offsetof(struct inserted_data_mgr, link));
+		dequed_data = OSAtomicFifoDequeue(&queue, offsetof(struct inserted_data_mgr, link));
 
-		if (dequed_data == NULL)
+		if (dequed_data == NULL) {
 			continue;
+		}
 
 		idx = dequed_data->idx;
 		str = dequed_data->in_shm;
 
-		if (strcmp(ACCESS(str, char) , strings[idx])) {
+		if (strcmp(ACCESS(str, char) , rand_strings[idx])) {
+
+			test_result->status = false;
+			break;
+
+		} else {
+
+			/*
+			 * Just to make it more random,
+			 * generate a random number and if its divisible by 2,
+			 * shm_free() the dequed offset else enqueue it again
+			 */
+
+			if (rand() % 2 == 0) {
+				shm_free(str);
+				free(dequed_data);
+			} else {
+				OSAtomicFifoEnqueue(&queue, dequed_data, offsetof(struct inserted_data_mgr, link));
+				
+			}
+		}
+	
+	}
+
+
+	dequed_data = OSAtomicFifoDequeue(&queue, offsetof(struct inserted_data_mgr, link));
+
+	while(dequed_data != NULL) {
+
+		idx = dequed_data->idx;
+		str = dequed_data->in_shm;
+
+		if (strcmp(ACCESS(str, char) , rand_strings[idx])) {
+
 			test_result->status = false;
 			break;
 
 		} else {
 			shm_free(str);
-
+			free(dequed_data);
 		}
-	
+
+		dequed_data = OSAtomicFifoDequeue(&queue, offsetof(struct inserted_data_mgr, link));
 	}
 
 	test_result->tid = (long)pthread_self();
