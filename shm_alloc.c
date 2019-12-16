@@ -1,8 +1,10 @@
-#include <sys/param.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 
 #include <assert.h>
+
+#include "cas.h"
+
 #include <fcntl.h>
 #include <pthread.h>
 
@@ -29,7 +31,7 @@ static _Atomic(struct shm_manager *) manager = NULL;
 	((uint8_t *)manager->shm_mapping.base + get_shm_mgmt_base_offt() + (offset))
 
 #define ACCESS_SHM_MGMT_BITMAP_NO(bitmap_no) \
-	ACCESS_SHM_MGMT(bitmap_no * sizeof(struct shm_block_mgmt))
+	ACCESS_SHM_MGMT((bitmap_no) * sizeof(struct shm_block_mgmt))
 
 #define ACCESS_SHM_MAPPING(offset) \
 	((uint8_t *)manager->shm_mapping.base + (offset))
@@ -119,8 +121,7 @@ struct bmp_data_mgr get_bmp_data_by_mem_offt_data(struct mem_offt_mgr);
 
 /*
  * retval:
- *  Returns the size stored in the header portion
- *  of an allocated offset.
+ *  Returns a `struct blk_hdr` loaded with header info
  *
  * param1:
  *  An offset allocated by shm_(m|c)alloc.
@@ -129,7 +130,7 @@ struct bmp_data_mgr get_bmp_data_by_mem_offt_data(struct mem_offt_mgr);
  *  The size stored in the header includes
  *  the size occupied by header aswell.
  */
-size_t get_size_from_hdr(shm_offt);
+struct blk_hdr get_blk_hdr(shm_offt);
 
 /*
  * param1:
@@ -142,7 +143,7 @@ size_t get_size_from_hdr(shm_offt);
  *  Sets the value in the header area of allocated
  *  memory to the value of param2
  */
-void set_size_in_hdr(shm_offt, size_t);
+void set_blk_hdr(shm_offt, struct blk_hdr);
 
 /*
  * retval:
@@ -195,6 +196,12 @@ bool check_if_children_are_set(shm_bitmap [], int, size_t);
  */
 void __attribute__((constructor)) shm_init(void)
 {
+	if (manager != NULL) {
+		return;
+	}
+
+	assert(MIN_ALLOCATABLE_SIZE < (MAX_ALLOCATABLE_SIZE - sizeof(struct blk_hdr)));
+	
 	int err;
 	struct stat st;
 
@@ -286,6 +293,16 @@ void __attribute__((constructor)) shm_init(void)
 	}
 }
 
+size_t get_shm_max_allocatable_size()
+{
+	return (MAX_ALLOCATABLE_SIZE - sizeof(struct blk_hdr));
+}
+
+size_t get_shm_min_allocatable_size()
+{
+	return (MIN_ALLOCATABLE_SIZE);
+}
+
 void * get_shm_user_base(void)
 {
 	if (manager == NULL) {
@@ -302,17 +319,15 @@ shm_offt shm_malloc(size_t size)
 		return (SHM_NULL);
 	}
 
-	size_t reqd_size, size_for_hdr;
+	size_t reqd_size;
+	struct blk_hdr allocated_blk_hdr;
 	struct bmp_data_mgr allocated_bmp_data;
 	struct mem_offt_mgr mem_offt_data;
 	bool found;
 	shm_offt allocated_offset;
 	
-	/* header stores the size of allocated memory */
-	size_for_hdr = sizeof(size_t);
-
 	/* evaluate reqd mem at least equal to MIN_ALLOCATABLE_SIZE */
-	reqd_size = get_next_power_of_two(size + size_for_hdr);
+	reqd_size = get_next_power_of_two(size + sizeof(allocated_blk_hdr));
 
 	if (reqd_size < MIN_ALLOCATABLE_SIZE)
 		reqd_size = MIN_ALLOCATABLE_SIZE;
@@ -336,10 +351,11 @@ shm_offt shm_malloc(size_t size)
 		allocated_offset = mem_offt_data.offt_to_allocated_mem;
 
 		/* user's offset is memory after the header */
-		allocated_offset += size_for_hdr;
+		allocated_offset += sizeof(allocated_blk_hdr);
 		allocated_offset += get_shm_null_size();
 
-		set_size_in_hdr(allocated_offset, reqd_size);
+		allocated_blk_hdr.mem = reqd_size;
+		set_blk_hdr(allocated_offset, allocated_blk_hdr);
 
 	} else {
 		P_ERR("Out of memory");
@@ -357,13 +373,16 @@ shm_offt shm_calloc(size_t cnt, size_t size)
 	}
 
 	shm_offt allocated_offt;
-	size_t allocated_size;
+	struct blk_hdr allocated_blk_hdr;
 
 	allocated_offt = shm_malloc(cnt * size);
 
-	allocated_size = get_size_from_hdr(allocated_offt);
+	if (allocated_offt == SHM_NULL)
+		return (SHM_NULL);
 
-	memset((void *)ACCESS_SHM_FOR_USER(allocated_offt), 0, (allocated_size - sizeof(size_t)));
+	allocated_blk_hdr = get_blk_hdr(allocated_offt);
+
+	memset((void *)ACCESS_SHM_FOR_USER(allocated_offt), 0, (allocated_blk_hdr.mem - sizeof(allocated_blk_hdr)));
 
 	return (allocated_offt);
 }
@@ -381,31 +400,34 @@ void shm_free(shm_offt shm_ptr)
 
 	blk_mgr = (struct shm_block_mgmt *)ACCESS_SHM_MGMT_BITMAP_NO(bmp_data.bitmap_no);
 
-	did_unset = unset_bit_race_free(blk_mgr->mgmt_bmp, bmp_data.abs_bit_pos);
-
+	did_unset = unset_bit_race_free(blk_mgr->mgmt_bmp, bmp_data.abs_bit_pos);	
 	assert(did_unset);
+
+	atomic_fetch_sub(&blk_mgr->mem_used, bmp_data.mem_level);
 }
 
-size_t get_size_from_hdr(shm_offt offset)
+struct blk_hdr get_blk_hdr(shm_offt offset)
 {
-	return *((size_t *)(ACCESS_SHM_FOR_USER(offset - sizeof(size_t))));
+	return *((struct blk_hdr *)ACCESS_SHM_FOR_USER(offset) - 1);
 }
 
-void set_size_in_hdr(shm_offt offset, size_t mem)
+void set_blk_hdr(shm_offt offset, struct blk_hdr hdr)
 {
-	size_t *hdr;
-	hdr = ((size_t *)ACCESS_SHM_FOR_USER(offset) - 1);
-	*hdr = mem;
+	struct blk_hdr *temp_hdr;
+	temp_hdr = ((struct blk_hdr *)ACCESS_SHM_FOR_USER(offset) - 1);
+	*temp_hdr = hdr;
 }
 
 struct mem_offt_mgr convert_offset_to_mem_offt_mgr(shm_offt offset)
 {
 	struct mem_offt_mgr mem_offt_data;
+	struct blk_hdr hdr;
 
-	mem_offt_data.mem = get_size_from_hdr(offset);
+	hdr = get_blk_hdr(offset);
+	mem_offt_data.mem = hdr.mem;
 
 	/* subtract size of header and null space*/
-	offset -= sizeof(size_t) + get_shm_null_size();
+	offset -= (sizeof(hdr) + get_shm_null_size());
 
 	mem_offt_data.offt_to_allocated_mem = offset;
 	
@@ -463,6 +485,9 @@ bool search_all_bitmaps_for_mem(size_t mem, struct bmp_data_mgr *bmp_data)
 
 	for (cur_blk_mgr = first_blk_mgr ; cur_blk_mgr <= last_blk_mgr ; ++cur_blk_mgr) {
 
+		if (cur_blk_mgr->mem_used + mem > MAX_ALLOCATABLE_SIZE)
+			continue;
+
 		relative_bit_pos = occupy_mem_in_bitmap(cur_blk_mgr, mem);
 
 		if (relative_bit_pos != -1) {
@@ -471,6 +496,8 @@ bool search_all_bitmaps_for_mem(size_t mem, struct bmp_data_mgr *bmp_data)
 			bmp_data->relative_bit_pos = relative_bit_pos;
 			bmp_data->abs_bit_pos = get_abs_bit_pos(relative_bit_pos, mem);
 
+			atomic_fetch_add_explicit(&cur_blk_mgr->mem_used, mem, memory_order_relaxed);
+			
 			did_find = true;
 			break;
 		}
@@ -526,7 +553,7 @@ bool check_if_parents_are_set(shm_bitmap bmp[], int relative_bit_pos, size_t mem
 		mul /= 2;
 	}
 
-	return false;
+	return (false);
 }
 
 int occupy_mem_in_bitmap(struct shm_block_mgmt *blk_mgr, size_t mem)
@@ -539,14 +566,14 @@ int occupy_mem_in_bitmap(struct shm_block_mgmt *blk_mgr, size_t mem)
 
 	shm_bitmap mask[BMP_ARR_SIZE];
 
-	set_mask_for_range(mask, get_start_bit_pos_for_mem_level(mem), get_end_bit_pos_for_mem_level(mem));
+	get_settable_bits_mask((shm_bitmap *)blk_mgr->mgmt_bmp, mem, mask);
 
 	rel_bit_pos = -1;
 	first_set_bit = -1;
 
-	do {	
+	do {
 
-		first_set_bit = shm_bitmap_ffs(mask) - 1;
+		first_set_bit = BITMAP_SIZE - (shm_bitmap_ffs(mask) ? : BITMAP_SIZE + 1);
 
 		/* memory not available in this bitmap */
 		if (first_set_bit == -1)
@@ -561,7 +588,7 @@ int occupy_mem_in_bitmap(struct shm_block_mgmt *blk_mgr, size_t mem)
 		}
 
 		rel_pos_first_set_bit = get_rel_bit_pos(first_set_bit);
-		
+
 		are_parents_set =
 		    check_if_parents_are_set((shm_bitmap *)blk_mgr->mgmt_bmp, rel_pos_first_set_bit, mem, &parent_mem_lv);
 
@@ -570,7 +597,7 @@ int occupy_mem_in_bitmap(struct shm_block_mgmt *blk_mgr, size_t mem)
 			nbpos = normalize_bit_pos_for_level(nbpos, parent_mem_lv, mem);
 			nbpos = get_abs_bit_pos(nbpos, mem);
 			unset_bits_in_range(mask, nbpos, nbpos + parent_mem_lv/mem);
-			
+
 			did_unset = unset_bit_race_free(blk_mgr->mgmt_bmp, first_set_bit);
 			assert(did_unset);
 
@@ -587,7 +614,7 @@ int occupy_mem_in_bitmap(struct shm_block_mgmt *blk_mgr, size_t mem)
 
 			continue;
 		}
-	
+
 		/* reaching here means bit setting is done, memory occupied */
 		rel_bit_pos = rel_pos_first_set_bit;
 
