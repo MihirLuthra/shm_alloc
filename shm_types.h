@@ -12,6 +12,7 @@ typedef uint64_t shm_bitmap;
 typedef uint32_t shm_bitmap;
 #endif
 
+
 struct file_data {
 	int          fd;
 	const char * name;
@@ -30,6 +31,11 @@ struct shm_manager {
 
 struct shm_block_mgmt {
 	_Atomic(shm_bitmap) mgmt_bmp[BMP_ARR_SIZE];
+	_Atomic(size_t) mem_used;
+};
+
+struct blk_hdr {
+	size_t mem;
 };
 
 struct bmp_data_mgr {
