@@ -2,4 +2,4 @@
 lock free shared memory
 
 
-Its almost ready but some bugs still need fixing!
+Works absolutely fine. Documentation coming soon.
