@@ -10,8 +10,11 @@
  * DEBUG_DIR whose value is a path to be enclosed in double quotes.
  * e.g., #define DEBUG_DIR "some/path".
  * If not defined, it defaults to PWD.
+ *
+ * TODO: override pthread_create() and main thread or whatever
+ * so that when a new thread gets created, open_pid_file() is
+ * automatically called.
  */
-
 
 #if !defined(__SHM_DEBUG_H__)
 #define __SHM_DEBUG_H__
