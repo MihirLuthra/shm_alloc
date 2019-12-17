@@ -2,9 +2,6 @@
 #include <sys/stat.h>
 
 #include <assert.h>
-
-#include "cas.h"
-
 #include <fcntl.h>
 #include <pthread.h>
 
