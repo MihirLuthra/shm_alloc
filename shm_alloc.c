@@ -482,7 +482,7 @@ bool search_all_bitmaps_for_mem(size_t mem, struct bmp_data_mgr *bmp_data)
 
 	for (cur_blk_mgr = first_blk_mgr ; cur_blk_mgr <= last_blk_mgr ; ++cur_blk_mgr) {
 
-		if (cur_blk_mgr->mem_used + mem > MAX_ALLOCATABLE_SIZE)
+		if (atomic_load(&cur_blk_mgr->mem_used) + mem > MAX_ALLOCATABLE_SIZE)
 			continue;
 
 		relative_bit_pos = occupy_mem_in_bitmap(cur_blk_mgr, mem);
@@ -493,7 +493,7 @@ bool search_all_bitmaps_for_mem(size_t mem, struct bmp_data_mgr *bmp_data)
 			bmp_data->relative_bit_pos = relative_bit_pos;
 			bmp_data->abs_bit_pos = get_abs_bit_pos(relative_bit_pos, mem);
 
-			atomic_fetch_add_explicit(&cur_blk_mgr->mem_used, mem, memory_order_relaxed);
+			atomic_fetch_add(&cur_blk_mgr->mem_used, mem);
 			
 			did_find = true;
 			break;
