@@ -231,7 +231,7 @@ void *tester_func(void *arg)
 			 * shm_free() the dequed offset else enqueue it again
 			 */
 
-			if (rand() % 2 == 0) {
+			if (rand() % 3 == 0) {
 				shm_free(str);
 				free(dequed_data);
 			} else {
