@@ -1,12 +1,3 @@
-
-
-
-/*
- * NOTE:
- *  Don't use functions from any other shm files here.
- *  It makes it difficult to link it if debugging gets needed.
- *
- */
 #include <pthread.h>
 
 #include "shm_err.h"
@@ -20,12 +11,6 @@
 
 __thread char pid_file_name[MAXPATHLEN];
 __thread FILE *pid_file;
-
-bool is_power_of_two(unsigned long long num)
-{   
-    return (1 == __builtin_popcountll(num));
-}
-
 
 void open_pid_file()
 {
@@ -75,7 +60,7 @@ void print_buddy_bitmap(shm_bitmap bmp[BMP_ARR_SIZE], FILE *outfile)
     {   
         fprintf(outfile, "%llu", (bmp[i/BITS] >> (BITS - (i % BITS) - 1) & (shm_bitmap)1));
         
-        if (is_power_of_two(i+1)) {
+        if (__builtin_popcount(i+1) == 1) {
             fprintf(outfile, " --> %zu \n", (mem));
             mem /= 2;
         }
