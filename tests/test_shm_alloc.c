@@ -72,6 +72,9 @@ int main(int argc, char *argv[])
 {
 #if TEST_THE_TEST
 	printf("Testing the working of test with malloc(2), calloc(2) and free(2)\n");
+#else
+	printf("Max allocatable size by shm_(m|c)alloc() = %zu\n", get_shm_max_allocatable_size());
+	printf("Min allocatable size by shm_(m|c)alloc() = %zu\n", get_shm_min_allocatable_size());
 #endif
 
 	if (argc != 4) {
