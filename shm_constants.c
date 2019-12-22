@@ -12,15 +12,15 @@
  *
  * shm_null is set in shm_null_init()
  *
- * shm_null.size is initially zero so that if
+ * shm_null.size is initially -1 so that if
  * get_shm_null_base_offt() is used before shm_null_init()
  * error gets reported
  *
  */
 static struct {
     shm_offt offt;
-    size_t     size;
-} shm_null = {.size = 0};
+    ssize_t  size;
+} shm_null = {.size = -1};
 
 void shm_null_init()
 {
@@ -33,9 +33,9 @@ void shm_null_init()
     shm_null.size = getpagesize();
 }
 
-size_t get_shm_mapping_size()
+const size_t get_shm_mapping_size()
 {
-    assert(shm_null.size != 0);
+    assert(shm_null.size != -1);
 
     /*
      * mapping comprises of 3 parts:
@@ -63,32 +63,32 @@ size_t get_shm_mapping_size()
     return (mapping_size);
 }
 
-shm_offt get_shm_mgmt_base_offt()
+const shm_offt get_shm_mgmt_base_offt()
 {
 	return (0);
 }
 
-shm_offt get_shm_null_base_offt()
+const shm_offt get_shm_null_base_offt()
 {
-	assert(shm_null.size != 0);
+	assert(shm_null.size != -1);
 	return (shm_null.offt);
 }
 
-shm_offt get_shm_user_base_offt()
+const shm_offt get_shm_user_base_offt()
 {
-	assert(shm_null.size != 0);
+	assert(shm_null.size != -1);
 	return (shm_null.offt);
 }
 
-size_t get_shm_null_size()
+const size_t get_shm_null_size()
 {
-	assert(shm_null.size != 0);
+	assert(shm_null.size != -1);
 	return (shm_null.size);
 }
 
-shm_offt get_allocatable_shm_base_offt()
+const shm_offt get_allocatable_shm_base_offt()
 {
-	assert(shm_null.size != 0);
+	assert(shm_null.size != -1);
 	
 	shm_offt ret_offt = get_shm_null_base_offt() + get_shm_null_size();
 
