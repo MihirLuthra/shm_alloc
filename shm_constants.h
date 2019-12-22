@@ -47,13 +47,10 @@ size_t get_shm_mapping_size();
  * the name of shm file
  */
 #define SHM_PATH_ENV_NAME         "SHM_FILE"
-/*
- * but if the env variable doesn't exist, default name is used.
- */
-#define DEFAULT_SHM_FILE_PATH     "/tmp/shm_alloc-shm_file"
+
 
 #define MAX_ALLOCATABLE_SHM_SIZE_POW2 (8 + 10 + 10)
-#define MAX_ALLOCATABLE_SHM_SIZE  (size_t)(1ULL << MAX_ALLOCATABLE_SHM_SIZE_POW2) // 256 MB
+#define MAX_ALLOCATABLE_SHM_SIZE      (size_t)(1ULL << MAX_ALLOCATABLE_SHM_SIZE_POW2) // 256 MB
 
 /*
  * Maximum and minumum sizes that can be allocated

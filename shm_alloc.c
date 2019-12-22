@@ -219,9 +219,8 @@ void __attribute__((constructor)) shm_init(void)
 
 	if (manager->shm_file.name == NULL) {
 
-		P_ERR("getenv(3) failed for \"%s\", using \"%s\" as shm file path",
-		    SHM_PATH_ENV_NAME, DEFAULT_SHM_FILE_PATH);
-		manager->shm_file.name = DEFAULT_SHM_FILE_PATH;
+		P_ERR("getenv(3) failed for \"%s\"", SHM_PATH_ENV_NAME);
+		exit(EXIT_FAILURE);
 	}
 
 	/* would create file if doesn't exist yet */
