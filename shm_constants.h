@@ -10,34 +10,53 @@
  *  should be used after this.
  */
 void shm_null_init();
-const size_t get_shm_null_size();
-const shm_offt get_shm_null_base_offt();
+size_t get_shm_null_size();
+shm_offt get_shm_null_base_offt();
 
 /*
  * Description:
  *  Returns the offset from the mapping base,
  *  from where the allocatable region of shm starts.
  */
-const shm_offt get_allocatable_shm_base_offt();
+shm_offt get_allocatable_shm_base_offt();
 
 /*
  * Description:
  *  Returns the offset from the mapping base,
  *  from where the mgmt region of shm starts.
  */
-const shm_offt get_shm_mgmt_base_offt();
+shm_offt get_shm_mgmt_base_offt();
+
+/*
+ * Description:
+ *  Returns the offset from the mapping base,
+ *  from where the shm data table region of shm starts.
+ */
+shm_offt get_shm_data_table_offt();
+
+/*
+ * Description:
+ *  Returns shm data table size
+ */
+shm_offt get_shm_data_table_size();
+
+/*
+ * Description:
+ *  Returns size of shm mgmt
+ */
+shm_offt get_shm_mgmt_size();
 
 /*
  * Description:
  *  Returns the complete mapping size.
  */
-const size_t get_shm_mapping_size();
+size_t get_shm_mapping_size();
 
 #define DIFF_NEXT_PAGE_BOUNDARY(offset) (getpagesize() - ((offset) % getpagesize() ? : getpagesize()))
 
 
 #if !defined(MAX_ALLOC_POW2)
-#	define MAX_ALLOC_POW2 (12) /* 1ULL << 12 = 4096   */
+#	define MAX_ALLOC_POW2 (10) /* 1ULL << 12 = 1024   */
 #endif
 
 #if !defined(MIN_ALLOC_POW2)
