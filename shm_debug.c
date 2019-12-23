@@ -21,7 +21,7 @@ void open_pid_file()
 #endif
 
     sprintf(pid_file_name_alias, "%s/pid=%d,tid=%ld.dbgfl", DEBUG_DIR, getpid(), (long)pthread_self());
-    
+
 	if (strcmp(pid_file_name_alias, pid_file_name)) {
         pid_file = NULL;
         strcpy(pid_file_name, pid_file_name_alias);
@@ -53,13 +53,13 @@ void print_mem_offt_data(struct mem_offt_mgr mem_offt_data, FILE *outfile)
 }
 
 void print_buddy_bitmap(shm_bitmap bmp[BMP_ARR_SIZE], FILE *outfile)
-{   
+{
     size_t mem = MAX_ALLOCATABLE_SIZE;
-    
+
     for (int i = 1 ; i < BITMAP_SIZE  ; ++i)
-    {   
+    {
         fprintf(outfile, "%llu", (bmp[i/BITS] >> (BITS - (i % BITS) - 1) & (shm_bitmap)1));
-        
+
         if (__builtin_popcount(i+1) == 1) {
             fprintf(outfile, " --> %zu \n", (mem));
             mem /= 2;
