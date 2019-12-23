@@ -2,6 +2,9 @@
 #define __SHM_ALLOC_H__
 
 #include "shm_user_types.h"
+#include <stdint.h>
+
+extern uint8_t *user_shm_base;
 
 void __attribute__((constructor)) shm_init(void);
 
