@@ -4,7 +4,6 @@
 #include <stdio.h>
 
 typedef size_t shm_offt;
-
 #define SHM_NULL ((shm_offt)0)
 
-#endif
+#endif /* !defined(__SHM_USER_TYPES_H__) */

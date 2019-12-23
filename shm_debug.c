@@ -14,26 +14,26 @@ __thread FILE *pid_file;
 
 void open_pid_file()
 {
-    char pid_file_name_alias[MAXPATHLEN];
+	char pid_file_name_alias[MAXPATHLEN];
 
 #ifndef DEBUG_DIR
 #define DEBUG_DIR getenv("PWD")
 #endif
 
-    sprintf(pid_file_name_alias, "%s/pid=%d,tid=%ld.dbgfl", DEBUG_DIR, getpid(), (long)pthread_self());
+	sprintf(pid_file_name_alias, "%s/pid=%d,tid=%ld.dbgfl", DEBUG_DIR, getpid(), (long)pthread_self());
 
 	if (strcmp(pid_file_name_alias, pid_file_name)) {
-        pid_file = NULL;
-        strcpy(pid_file_name, pid_file_name_alias);
-    }
+		pid_file = NULL;
+		strcpy(pid_file_name, pid_file_name_alias);
+	}
 
-    if (pid_file == NULL)
-        pid_file = fopen(pid_file_name, "a+");
+	if (pid_file == NULL)
+		pid_file = fopen(pid_file_name, "a+");
 
-    if (pid_file == NULL) {
-        P_ERR("fopen(2) failed for file %s", pid_file_name);
-        abort();
-    }
+	if (pid_file == NULL) {
+		P_ERR("fopen(2) failed for file %s", pid_file_name);
+		abort();
+	}
 }
 
 void print_bmp_data(struct bmp_data_mgr bmp_data, FILE *outfile)
@@ -54,25 +54,25 @@ void print_mem_offt_data(struct mem_offt_mgr mem_offt_data, FILE *outfile)
 
 void print_buddy_bitmap(shm_bitmap bmp[BMP_ARR_SIZE], FILE *outfile)
 {
-    size_t mem = MAX_ALLOCATABLE_SIZE;
+	size_t mem = MAX_ALLOCATABLE_SIZE;
 
-    for (int i = 1 ; i < BITMAP_SIZE  ; ++i)
-    {
-        fprintf(outfile, "%llu", (bmp[i/BITS] >> (BITS - (i % BITS) - 1) & (shm_bitmap)1));
+	for (int i = 1 ; i < BITMAP_SIZE  ; ++i)
+	{
+		fprintf(outfile, "%llu", (bmp[i/BITS] >> (BITS - (i % BITS) - 1) & (shm_bitmap)1));
 
-        if (__builtin_popcount(i+1) == 1) {
-            fprintf(outfile, " --> %zu \n", (mem));
-            mem /= 2;
-        }
-    }
-    fprintf(outfile, "\n");
+		if (__builtin_popcount(i+1) == 1) {
+			fprintf(outfile, " --> %zu \n", (mem));
+			mem /= 2;
+		}
+	}
+	fprintf(outfile, "\n");
 }
 
 
 void print_all_bits(shm_bitmap bmp, FILE *outfile)
 {
-    for(int i = BITS - 1 ; i >= 0 ; --i)
-        fprintf(outfile, "%llu", ((shm_bitmap)bmp >> i) & (shm_bitmap)1);
+	for(int i = BITS - 1 ; i >= 0 ; --i)
+		fprintf(outfile, "%llu", ((shm_bitmap)bmp >> i) & (shm_bitmap)1);
 
 	fprintf(outfile, "\n");
 }
