@@ -1,4 +1,4 @@
-SHM_DIR := ../
+SHM_DIR := ../src/
 
 CC := gcc
 CFLAGS  := -D TEST_THE_TEST=0 -Wall -Wextra -fsanitize=address -I$(SHM_DIR)
