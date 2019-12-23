@@ -36,13 +36,13 @@ unsigned long long get_next_power_of_two(unsigned long long num)
 
 int shm_bitmap_ffs(shm_bitmap bmp[BMP_ARR_SIZE])
 {
-    int pos;
+	int pos;
 
-    for (int i = (BMP_ARR_SIZE-1) ; i >= 0 ; --i)
-        if ((pos = __builtin_ffsll(bmp[i])) != 0)
-            return (((BMP_ARR_SIZE - 1 - i) * BITS) + pos - (BITS > BITMAP_SIZE ? (BITS-BITMAP_SIZE) :0));
+	for (int i = (BMP_ARR_SIZE-1) ; i >= 0 ; --i)
+		if ((pos = __builtin_ffsll(bmp[i])) != 0)
+			return (((BMP_ARR_SIZE - 1 - i) * BITS) + pos - (BITS > BITMAP_SIZE ? (BITS-BITMAP_SIZE) :0));
 
-    return 0;
+	return 0;
 }
 
 int get_abs_bit_pos(int rel_bit_pos, size_t mem_level)
@@ -146,12 +146,12 @@ void unset_bit(shm_bitmap bmp[BMP_ARR_SIZE], int pos)
 
 void get_settable_bits_mask(shm_bitmap bmp[BMP_ARR_SIZE], size_t mem, shm_bitmap mask[BMP_ARR_SIZE])
 {
-    set_mask_for_range(mask, get_start_bit_pos_for_mem_level(mem), get_end_bit_pos_for_mem_level(mem));
+	set_mask_for_range(mask, get_start_bit_pos_for_mem_level(mem), get_end_bit_pos_for_mem_level(mem));
 
 	int i;
 
-    for (i = 0 ; i < BMP_ARR_SIZE ; ++i) {
-        mask[i] = mask[i] & ~bmp[i];
+	for (i = 0 ; i < BMP_ARR_SIZE ; ++i) {
+		mask[i] = mask[i] & ~bmp[i];
 	}
 }
 

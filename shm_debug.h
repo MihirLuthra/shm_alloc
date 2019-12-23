@@ -30,7 +30,7 @@ void open_pid_file();
 #define BTS(boolean) ((boolean) ? "true" : "false")
 
 #define PRINT_IN_PID_FILE(fmt, ...) \
-    open_pid_file(); fprintf(pid_file, fmt, ##__VA_ARGS__);
+	open_pid_file(); fprintf(pid_file, fmt, ##__VA_ARGS__);
 
 #define PTPRINTF(format, ...) \
 	printf("[%d,%ld]:" format, getpid(), (long)pthread_self(), ##__VA_ARGS__)

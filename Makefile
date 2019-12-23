@@ -29,6 +29,6 @@ debug: $(SELF_DIR)shm_alloc.c $(SELF_DIR)shm_alloc.h shm_util_funcs.o shm_consta
 	                  libshm_debug.so
 	$(CC) $(CFLAGS) -fPIC -shared -o $(SHM_LIB_NAME) $< shm_util_funcs.o shm_constants.o -L. -lshm_debug
 
-libshm_debug.so: $(SELF_DIR)shm_debug.c $(SELF_DIR)shm_debug.h 
+libshm_debug.so: $(SELF_DIR)shm_debug.c $(SELF_DIR)shm_debug.h
 	$(CC) $(CFLAGS) -fPIC -shared -o $@ $<
 
