@@ -1,24 +1,21 @@
-CC=clang
+SHM_DIR := ..
 
-CFLAGS= -I.. -D DEBUG_SHM=0 -Wall -fsanitize=address -L.
+include $(SHM_DIR)/Makefile
 
-test_shm_alloc.out: test_shm_alloc.c libshm_alloc.so librand_string_generator.so Makefile
-	$(CC) $(CFLAGS) -o test_shm_alloc.out test_shm_alloc.c -lshm_alloc -lrand_string_generator
+CC := gcc
 
-librand_string_generator.so: rand_string_generator.c rand_string_generator.h Makefile
-	$(CC) $(CFLAGS) -fPIC -shared -o $@ rand_string_generator.c
+CFLAGS  := -D TEST_THE_TEST=0 -Wall -Wextra -fsanitize=address -I$(SHM_DIR)
 
-libshm_alloc.so: ../shm_alloc.c ../shm_alloc.h libshm_debug.so libshm_util_funcs.so libshm_constants.so Makefile
-	$(CC) $(CFLAGS) -fPIC -shared -o $@ ../shm_alloc.c -lc -L. -lshm_util_funcs -lshm_constants -lshm_debug
+.DEFAULT_GOAL = test_shm_alloc.out
 
-libshm_debug.so: ../shm_debug.h ../shm_debug.c Makefile
-	$(CC) $(CFLAGS) -fPIC -shared -o $@ ../shm_debug.c -lc -L.
+test_shm_alloc.out: export SHM_FILE=shm_file
 
-libshm_util_funcs.so: ../shm_util_funcs.h ../shm_util_funcs.c libshm_constants.so libshm_debug.so ../shm_types.h ../shm_err.h Makefile
-	$(CC) $(CFLAGS) -fPIC -shared -o $@ ../shm_util_funcs.c -lc -L. -lshm_constants -lshm_debug
+test_shm_alloc.out: test_shm_alloc.c libshm_alloc.so rand_string_generator.o
+	$(CC) $(CFLAGS) -o test_shm_alloc.out test_shm_alloc.c rand_string_generator.o -L. -lshm_alloc
 
-libshm_constants.so: ../shm_constants.h ../shm_constants.c Makefile
-	$(CC) $(CFLAGS) -fPIC -shared -o $@ ../shm_constants.c -lc
+rand_string_generator.o: rand_string_generator.c rand_string_generator.h
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm *.dbgfl *.so *.out .*.swp shm_file
+	rm *.dbgfl *.so *.out *.o .*.swp shm_file
+

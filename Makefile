@@ -1,20 +1,34 @@
-CC=clang
-CFLAGS=-Wall -fsanitize=address
+CC := gcc
+CFLAGS := -Wall -fsanitize=address
 
-libshm_alloc.so: shm_alloc.c shm_alloc.h libshm_util_funcs.so libshm_constants.so Makefile
-	$(CC) $(CFLAGS) -fPIC -shared -o $@ shm_alloc.c -lc -L. -lshm_util_funcs -lshm_constants
+SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 
-libshm_alloc_debug.so: shm_alloc.c shm_alloc.h libshm_debug.so libshm_util_funcs.so libshm_constants.so Makefile
-	$(CC) $(CFLAGS) -fPIC -shared -o $@ shm_alloc.c -lc -L. -lshm_util_funcs -lshm_constants -lshm_debug
+SHM_LIB_NAME := libshm_alloc.so
 
-libshm_debug.so: shm_debug.h shm_debug.c Makefile
-	$(CC) $(CFLAGS) -fPIC -shared -o $@ shm_debug.c -lc
+$(SHM_LIB_NAME): $(SELF_DIR)shm_alloc.c $(SELF_DIR)shm_alloc.h shm_util_funcs.o shm_constants.o
+	$(CC) $(CFLAGS) -fPIC -shared -o $@ $< shm_util_funcs.o shm_constants.o
 
-libshm_util_funcs.so: shm_util_funcs.h shm_util_funcs.c libshm_constants.so shm_types.h shm_err.h Makefile
-	$(CC) $(CFLAGS) -fPIC -shared -o $@ shm_util_funcs.c -lc -L. -lshm_constants
 
-libshm_constants.so: shm_constants.h shm_constants.c Makefile
-	$(CC) $(CFLAGS) -fPIC -shared -o $@ shm_constants.c -lc
+shm_util_funcs.o: $(SELF_DIR)shm_util_funcs.c $(SELF_DIR)shm_util_funcs.h \
+                      $(SELF_DIR)shm_types.h $(SELF_DIR)shm_err.h
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+
+shm_constants.o: $(SELF_DIR)shm_constants.c $(SELF_DIR)shm_constants.h
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+
+.PHONY : clean
 
 clean:
-	rm *.so *.out .*.swp *.dbgfl
+	rm *.so *.out .*.swp *.dbgfl *.o
+
+# For debugging
+
+debug: $(SELF_DIR)shm_alloc.c $(SELF_DIR)shm_alloc.h shm_util_funcs.o shm_constants.o \
+	                  libshm_debug.so
+	$(CC) $(CFLAGS) -fPIC -shared -o $(SHM_LIB_NAME) $< shm_util_funcs.o shm_constants.o -L. -lshm_debug
+
+libshm_debug.so: $(SELF_DIR)shm_debug.c $(SELF_DIR)shm_debug.h 
+	$(CC) $(CFLAGS) -fPIC -shared -o $@ $<
+
