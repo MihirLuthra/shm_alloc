@@ -39,19 +39,21 @@ shm_free()
 
 <ol>
     <li>
-        It uses a lot of gcc extensions, which are available in clang as well.
-        It uses C11's atomic library. 
+        It uses C11's atomic library. Also, it uses a lot of gcc extensions, which are available in clang as well.
+        This has been tested on macOS till now. 
     </li>
     <li>
-        It is meant to be used for caching, so it is not efficient for large data.
-    </li>
-    <li>
-        Currently it is defaulted such that max memory available is 256 MB and max size that can be allocated from
-        <code>shm_malloc()</code> is 4096 bytes.
+        It is meant to be used for caching. It can't allocate memory beyond its max limit. Like, if the max allocatable size
+        is set to 4096, any requests for memory greater than that will return null. The code needs to be compiled with max and
+        min limits. Defaults for min and max are 32 bytes(2^5) and 4096(2^12) bytes respectively. In order to change these,
+        code needs to be recompiled with new limits which need to be power of 2.
+        (described in <a href="https://github.com/MihirLuthra/shm_alloc#how-to-use">How to use?</a></li>). The code will be
+        efficient if the the difference in the powers is less. Like currently 12(2^12 = 4096) - 5(2^5 = 32) = 7.
     </li>
 </ol>
 
 
 # How to use?
 
-Find the instructions to use the library in <a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/how_to_use.md">how_to_use.md<a>
+Find the instructions to use the library in 
+<a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/how_to_use.md">how_to_use.md<a>
