@@ -56,7 +56,7 @@ size_t get_shm_mapping_size();
 
 
 #if !defined(MAX_ALLOC_POW2)
-#	define MAX_ALLOC_POW2 (10) /* 1ULL << 12 = 1024   */
+#	define MAX_ALLOC_POW2 (12) /* 1ULL << 12 = 4096   */
 #endif
 
 #if !defined(MIN_ALLOC_POW2)
