@@ -174,7 +174,7 @@ void set_mask_for_range(shm_bitmap mask[BMP_ARR_SIZE], int from, int to)
 
 bool is_bit_range_zero(shm_bitmap bmp[BMP_ARR_SIZE], int from, int to)
 {
-	assert(from >= 0 && from <= BITMAP_SIZE 
+	assert(from >= 0 && from <= BITMAP_SIZE
 	    && to >= 0 && to <= BITMAP_SIZE);
 
 	shm_bitmap mask[BMP_ARR_SIZE];
@@ -183,7 +183,7 @@ bool is_bit_range_zero(shm_bitmap bmp[BMP_ARR_SIZE], int from, int to)
 	for (int idx = 0 ; idx < BMP_ARR_SIZE ; ++idx)
 		if ((bmp[idx] & mask[idx]) != 0ULL)
 			return (false);
-	
+
 	return (true);
 }
 
