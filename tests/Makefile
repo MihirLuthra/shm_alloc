@@ -8,8 +8,6 @@ CFLAGS  := -D TEST_THE_TEST=0 -Wall -Wextra -fsanitize=address -I$(SHM_DIR)
 
 .DEFAULT_GOAL = test_shm_alloc.out
 
-test_shm_alloc.out: export SHM_FILE=shm_file
-
 test_shm_alloc.out: test_shm_alloc.c libshm_alloc.so rand_string_generator.o
 	$(CC) $(CFLAGS) -o test_shm_alloc.out test_shm_alloc.c rand_string_generator.o -L. -lshm_alloc
 
