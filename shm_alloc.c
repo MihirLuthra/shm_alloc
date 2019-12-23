@@ -2,6 +2,9 @@
 #include <sys/stat.h>
 
 #include <assert.h>
+
+#include "cas.h"
+
 #include <fcntl.h>
 #include <pthread.h>
 
@@ -20,18 +23,22 @@
 #include <string.h>
 #include <unistd.h>
 
+uint8_t *user_shm_base;
 
 static _Atomic(struct shm_manager *) manager = NULL;
 
 
 #define ACCESS_SHM_MGMT(offset) \
-	((uint8_t *)manager->shm_mapping.base + get_shm_mgmt_base_offt() + (offset))
+	((struct shm_block_mgmt *)((uint8_t *)manager->shm_mapping.base + get_shm_mgmt_base_offt() + (offset)))
 
-#define ACCESS_SHM_MGMT_BITMAP_NO(bitmap_no) \
+#define ACCESS_SHM_DATA_TABLE(offset) \
+	((struct shm_data_table *)((uint8_t *)manager->shm_mapping.base + get_shm_data_table_offt() + (offset)))
+
+#define ACCESS_SHM_MGMT_BY_BITMAP_NO(bitmap_no) \
 	ACCESS_SHM_MGMT((bitmap_no) * sizeof(struct shm_block_mgmt))
 
 #define ACCESS_SHM_MAPPING(offset) \
-	((uint8_t *)manager->shm_mapping.base + (offset))
+	((void *)((uint8_t *)manager->shm_mapping.base + (offset)))
 
 /*
  * shm base for user starts from offset to null.
@@ -43,24 +50,51 @@ static _Atomic(struct shm_manager *) manager = NULL;
 	((uint8_t *)manager->shm_mapping.base + get_shm_null_base_offt() + (offset))
 
 
+
 /*
  * retval:
  *  If success returns `true` else `false`
  *
- * param1 : 
+ * param1 :
  *  Memory required
  *
- * param2 : 
+ * param2 :
  *  Pass address of a `struct bmp_data_mgr` which gets filled
  *  with the allocated bitmap data
  *
- * Description: 
+ * Description:
  *  The function iterates over the mgmt mapping area,
  *  checking the bitmaps for availability of the required memory.
  *  If a bitmap with desired memory is found, allocation is done
  *  by setting the bit and the bitmap data is filled in param2.
  */
 bool search_all_bitmaps_for_mem(size_t, struct bmp_data_mgr *);
+
+/*
+ * retval:
+ *  Returns the address of blk mgr that is stored in
+ *  shm data table region.
+ *
+ * Description:
+ *  This is the blk mgr that is supposed to have the first free
+ *  memory not considering the ones freed by shm_free().
+ *  Coming straight to it saves the unnecessary iterations
+ *  to reach here.
+ */
+struct shm_block_mgmt * get_start_blk_mgr();
+
+/*
+ * retval:
+ *  If the update was made, true is returned else false
+ *
+ * Description:
+ *  Updates the start blk mgr if param1 is greater than
+ *  previous value of address.
+ *
+ * param1:
+ *  New blk mgr to be set.
+ */
+bool update_start_blk_mgr(struct shm_block_mgmt *);
 
 /*
  * retval:
@@ -185,7 +219,7 @@ bool check_if_children_are_set(shm_bitmap [], int, size_t);
  * It would first create/open a file that is to be used as
  * the shared memory, ftruncate(2) it to desired size(which also fills the file with zeros)
  * and mmap(2) the file into the current process.
- * Note: 
+ * Note:
  *  This function is only called before main() as per its attribute
  *  and child processes copy the mappings created by this function.
  *  In case if `__attribute__((constructor))` isn't usable, this function can handle
@@ -197,8 +231,8 @@ void __attribute__((constructor)) shm_init(void)
 		return;
 	}
 
-	assert(MIN_ALLOCATABLE_SIZE < (MAX_ALLOCATABLE_SIZE - sizeof(struct blk_hdr)));
-	
+	assert(get_shm_min_allocatable_size() < get_shm_max_allocatable_size());
+
 	int err;
 	struct stat st;
 
@@ -261,7 +295,7 @@ void __attribute__((constructor)) shm_init(void)
 
 	manager->shm_mapping.base =
 	    mmap(NULL, manager->shm_file.size, PROT_READ | PROT_WRITE, MAP_SHARED,
-	    manager->shm_file.fd, 0);	
+	    manager->shm_file.fd, 0);
 
 	if (manager->shm_mapping.base == MAP_FAILED) {
 		free(manager);
@@ -277,9 +311,9 @@ void __attribute__((constructor)) shm_init(void)
 	 * saying readonly memory accessed
 	 */
 	void * shm_null_base = ACCESS_SHM_MAPPING(get_shm_null_base_offt());
-	size_t shm_null_size = get_shm_null_size();
+	const size_t shm_null_size = get_shm_null_size();
 
-	if (mmap(shm_null_base, shm_null_size, PROT_READ, MAP_SHARED | MAP_FIXED, 
+	if (mmap(shm_null_base, shm_null_size, PROT_READ, MAP_SHARED | MAP_FIXED,
 	    manager->shm_file.fd, 0) == MAP_FAILED) {
 
 		P_ERR("mmap(2) failed while setting shm null");
@@ -287,6 +321,26 @@ void __attribute__((constructor)) shm_init(void)
 		manager = NULL;
 		return;
 	}
+
+	/*
+	 * As shm null exists in the allocatable region,
+	 * we need to set it manager to indicate that its completely
+	 * used
+	 */
+	int num_mgrs;
+	struct shm_block_mgmt *null_blk_mgr;
+
+	num_mgrs = shm_null_size/MAX_ALLOCATABLE_SIZE + (shm_null_size % MAX_ALLOCATABLE_SIZE > 0 ? 1 : 0);
+
+	for (int mgr = 0 ; mgr < num_mgrs ; ++mgr) {
+
+		null_blk_mgr = ACCESS_SHM_MGMT_BY_BITMAP_NO(mgr);
+
+		(void)set_bit_race_free(null_blk_mgr->mgmt_bmp, get_start_bit_pos_for_mem_level(MAX_ALLOCATABLE_SIZE));
+		atomic_store(&null_blk_mgr->mem_used, MAX_ALLOCATABLE_SIZE);
+	}
+
+	user_shm_base = ACCESS_SHM_FOR_USER(0);
 }
 
 size_t get_shm_max_allocatable_size()
@@ -321,7 +375,7 @@ shm_offt shm_malloc(size_t size)
 	struct mem_offt_mgr mem_offt_data;
 	bool found;
 	shm_offt allocated_offset;
-	
+
 	/* evaluate reqd mem at least equal to MIN_ALLOCATABLE_SIZE */
 	reqd_size = get_next_power_of_two(size + sizeof(allocated_blk_hdr));
 
@@ -333,7 +387,7 @@ shm_offt shm_malloc(size_t size)
 		return (SHM_NULL);
 	}
 
-	/* 
+	/*
 	 * if memory is available, `allocated_bitmap`
 	 * gets filled with the bitmap pos and bit pos
 	 */
@@ -348,9 +402,9 @@ shm_offt shm_malloc(size_t size)
 
 		/* user's offset is memory after the header */
 		allocated_offset += sizeof(allocated_blk_hdr);
-		allocated_offset += get_shm_null_size();
 
 		allocated_blk_hdr.mem = reqd_size;
+
 		set_blk_hdr(allocated_offset, allocated_blk_hdr);
 
 	} else {
@@ -394,9 +448,9 @@ void shm_free(shm_offt shm_ptr)
 
 	bmp_data = get_bmp_data_by_mem_offt_data(mem_offt_data);
 
-	blk_mgr = (struct shm_block_mgmt *)ACCESS_SHM_MGMT_BITMAP_NO(bmp_data.bitmap_no);
+	blk_mgr = ACCESS_SHM_MGMT_BY_BITMAP_NO(bmp_data.bitmap_no);
 
-	did_unset = unset_bit_race_free(blk_mgr->mgmt_bmp, bmp_data.abs_bit_pos);	
+	did_unset = unset_bit_race_free(blk_mgr->mgmt_bmp, bmp_data.abs_bit_pos);
 	assert(did_unset);
 
 	atomic_fetch_sub(&blk_mgr->mem_used, bmp_data.mem_level);
@@ -422,11 +476,11 @@ struct mem_offt_mgr convert_offset_to_mem_offt_mgr(shm_offt offset)
 	hdr = get_blk_hdr(offset);
 	mem_offt_data.mem = hdr.mem;
 
-	/* subtract size of header and null space*/
-	offset -= (sizeof(hdr) + get_shm_null_size());
+	/* subtract size of header*/
+	offset -= sizeof(hdr);
 
 	mem_offt_data.offt_to_allocated_mem = offset;
-	
+
 	mem_offt_data.internal_offt = offset % MAX_ALLOCATABLE_SIZE;
 	mem_offt_data.offt_to_blk   = offset - mem_offt_data.internal_offt;
 
@@ -451,7 +505,7 @@ struct mem_offt_mgr get_offset_for_user_by_bmp_data(struct bmp_data_mgr bmp_data
 	struct mem_offt_mgr mem_offt_data;
 
 	mem_offt_data.mem = bmp_data.mem_level;
-	
+
 	assert(bmp_data.relative_bit_pos >= 0);
 
 	/* shm base for user starts from shm null followed by allocatable shm region */
@@ -465,12 +519,12 @@ struct mem_offt_mgr get_offset_for_user_by_bmp_data(struct bmp_data_mgr bmp_data
 
 bool search_all_bitmaps_for_mem(size_t mem, struct bmp_data_mgr *bmp_data)
 {
-	struct shm_block_mgmt *cur_blk_mgr, *first_blk_mgr, *last_blk_mgr;
+	struct shm_block_mgmt *cur_blk_mgr, *first_blk_mgr, *last_blk_mgr, *start_blk_mgr, *end_blk_mgr;
 	int relative_bit_pos;
 	bool did_find;
 
-	first_blk_mgr  = (struct shm_block_mgmt *)ACCESS_SHM_MGMT(0);
-	last_blk_mgr   = (struct shm_block_mgmt *)ACCESS_SHM_MGMT(SHM_MGMT_SIZE) - 1;
+	first_blk_mgr  = ACCESS_SHM_MGMT(0);
+	last_blk_mgr   = ACCESS_SHM_MGMT(SHM_MGMT_SIZE) - 1;
 
 	bmp_data->bitmap_no        = -1;
 	bmp_data->relative_bit_pos = -1;
@@ -479,28 +533,82 @@ bool search_all_bitmaps_for_mem(size_t mem, struct bmp_data_mgr *bmp_data)
 
 	did_find = false;
 
-	for (cur_blk_mgr = first_blk_mgr ; cur_blk_mgr <= last_blk_mgr ; ++cur_blk_mgr) {
+	for (int scans = 0 ; scans < 2 ; ++scans) {
 
-		if (atomic_load(&cur_blk_mgr->mem_used) + mem > MAX_ALLOCATABLE_SIZE)
-			continue;
-
-		relative_bit_pos = occupy_mem_in_bitmap(cur_blk_mgr, mem);
-
-		if (relative_bit_pos != -1) {
-
-			bmp_data->bitmap_no = (cur_blk_mgr - first_blk_mgr);
-			bmp_data->relative_bit_pos = relative_bit_pos;
-			bmp_data->abs_bit_pos = get_abs_bit_pos(relative_bit_pos, mem);
-
-			atomic_fetch_add(&cur_blk_mgr->mem_used, mem);
-			
-			did_find = true;
-			break;
+		if (scans == 0) {
+			start_blk_mgr  = get_start_blk_mgr();
+			end_blk_mgr    = last_blk_mgr;
+		} else if (scans == 1) {
+			end_blk_mgr    = start_blk_mgr - 1;
+			start_blk_mgr  = first_blk_mgr;
 		}
 
+		for (cur_blk_mgr = start_blk_mgr ; cur_blk_mgr <= end_blk_mgr ; ++cur_blk_mgr) {
+
+			if (atomic_load(&cur_blk_mgr->mem_used) + mem > MAX_ALLOCATABLE_SIZE) {
+				continue;
+			}
+
+			relative_bit_pos = occupy_mem_in_bitmap(cur_blk_mgr, mem);
+
+			if (relative_bit_pos != -1) {
+
+				size_t mem_used;
+
+				bmp_data->bitmap_no = (cur_blk_mgr - first_blk_mgr);
+				bmp_data->relative_bit_pos = relative_bit_pos;
+				bmp_data->abs_bit_pos = get_abs_bit_pos(relative_bit_pos, mem);
+
+				mem_used = atomic_fetch_add(&cur_blk_mgr->mem_used, mem);
+
+				if (mem_used + mem == MAX_ALLOCATABLE_SIZE && scans == 0) {
+					/* Because this blk mgr is full, set start to next one */
+					(void)update_start_blk_mgr(cur_blk_mgr + 1);
+				}
+
+				did_find = true;
+				break;
+			}
+		}
+
+		if (did_find) {
+			break;
+		}
 	}
 
+
 	return (did_find);
+}
+
+struct shm_block_mgmt * get_start_blk_mgr()
+{
+	struct shm_data_table * data_table;
+	shm_offt start_blk_mgr_offt;
+
+	data_table = ACCESS_SHM_DATA_TABLE(0);
+	start_blk_mgr_offt = atomic_load(&data_table->start_blk_mgr_offt);
+
+	return (ACCESS_SHM_MGMT(start_blk_mgr_offt));
+}
+
+bool update_start_blk_mgr(struct shm_block_mgmt * new_blk_mgr)
+{
+	shm_offt old, new;
+
+	struct shm_data_table * data_table;
+	data_table = ACCESS_SHM_DATA_TABLE(0);
+
+	do {
+		old = atomic_load(&data_table->start_blk_mgr_offt);
+		new = (new_blk_mgr - ACCESS_SHM_MGMT(0)) * sizeof(struct shm_block_mgmt);
+
+		if (new < old) {
+			return (false);
+		}
+
+	}while(!CAS(&data_table->start_blk_mgr_offt, &old, new));
+
+	return (true);
 }
 
 bool check_if_children_are_set(shm_bitmap bmp[], int relative_bit_pos, size_t mem_level)

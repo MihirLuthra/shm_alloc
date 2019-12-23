@@ -29,9 +29,13 @@ struct shm_manager {
 	struct file_data shm_file;
 };
 
+struct shm_data_table {
+	_Atomic(shm_offt) start_blk_mgr_offt;
+};
+
 struct shm_block_mgmt {
 	_Atomic(shm_bitmap) mgmt_bmp[BMP_ARR_SIZE];
-	_Atomic(size_t) mem_used;
+	_Atomic(size_t)     mem_used;
 };
 
 struct blk_hdr {
@@ -39,9 +43,9 @@ struct blk_hdr {
 };
 
 struct bmp_data_mgr {
-	int bitmap_no;
-	int relative_bit_pos;
-	int abs_bit_pos;
+	int    bitmap_no;
+	int    relative_bit_pos;
+	int    abs_bit_pos;
 	size_t mem_level;
 };
 
@@ -49,7 +53,7 @@ struct mem_offt_mgr {
 	shm_offt offt_to_blk;
 	shm_offt internal_offt;
 	shm_offt offt_to_allocated_mem;
-	size_t mem;
+	size_t   mem;
 };
 
 #endif /* !defined(__SHM_TYPES_H__) */
