@@ -85,7 +85,9 @@ size_t get_shm_mapping_size();
  * The environment variable that is supposed to contain
  * the name of shm file
  */
-#define SHM_PATH_ENV_NAME "SHM_FILE"
+#if !defined(SHM_PATH_ENV_NAME)
+#	define SHM_PATH_ENV_NAME "SHM_FILE"
+#endif
 
 /*
  * Maximum and minumum sizes that can be allocated
