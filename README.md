@@ -7,6 +7,7 @@
     <li><a href="https://github.com/MihirLuthra/shm_alloc#when-to-use">When to use?</a></li>
     <li><a href="https://github.com/MihirLuthra/shm_alloc#use-case">Use case</a></li>
     <li><a href="https://github.com/MihirLuthra/shm_alloc#how-to-use">How to use?</a></li>
+    <li><a href="https://github.com/MihirLuthra/shm_alloc#source-code-explanation">Source code explanation</a></li>
 </ul>
 
 # What is it?
@@ -85,3 +86,8 @@ shm_free()
 
 Find the instructions to use the library in 
 <a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/how_to_use.md">how_to_use.md<a>
+
+# Source code explanation
+
+Find the source code explanation in 
+<a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/source_code_explanation.md">source_code_explanation.md</a>.
