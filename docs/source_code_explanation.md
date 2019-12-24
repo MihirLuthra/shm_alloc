@@ -1,7 +1,31 @@
 <h1>Complete Explanation</h1>
 
+<img src="shared_memory.png" alt="shared memory file structure" width="600" height="400"><br><br><br>
 To start with, consider a file. The file's size is obtained by a <code>get_shm_mapping_size()</code> defined in
 <code>shm_constants.c</code>. The file contains 4 regions just as shown in the image above.
+
+<ul>
+	<li>
+		<a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/source_code_explanation.md#shm-allocatable-region">
+			Shm Allocatable Region
+		</a>
+	</li>
+	<li>
+		<a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/source_code_explanation.md#shm-management-region">
+			Shm Management Region
+		</a>
+	</li>
+	<li>
+		<a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/source_code_explanation.md#shm-null">
+			Shm Null
+		</a>
+	</li>
+	<li>
+		<a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/source_code_explanation.md#shm-data-table">
+			Shm Data Table
+		</a>
+	</li>
+</ul>
 
 <h2>Shm Allocatable Region</h2>
 In the file, the area that is for actual data storage is called the <em>shm allocatable region</em>. Its size is
