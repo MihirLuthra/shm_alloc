@@ -94,8 +94,9 @@ struct shm_block_mgmt {
 				<li>
 					Here <code>mgmt_bmp</code> has 256 bits although only 255 bits are needed. Number of bits are defined in <code>BITMAP_SIZE</code>
 					This bitmap is achieved by an array of type <code>shm_bitmap</code> where array size is defined with <code>BMP_ARR_SIZE</code>.
-					<code>shm_bitmap</code> is <code>uint64_t</code> if <a href="https://gcc.gnu.org/onlinedocs/cpp/Common-Predefined-Macros.html">
-					<code>__LP64__</code></a> is set else it is <code>uint32_t</code>.<br>
+					<code>shm_bitmap</code> is set to <code>unsigned long</code> if <a href="https://www.ibm.com/support/knowledgecenter/en/SSLTBW_2.1.0/com.ibm.zos.v2r1.cbclx01/atomicmacros.htm"><code>ATOMIC_LONG_LOCK_FREE</code></a>
+					is 2 i.e. always lock free. Otherwise it checks the same for <code>unsigned int</code>. If <code>unsigned int</code>
+					is also not always lock free, the program terminates.
 				</li>
 				<li>
 					To allocate memory in the block, the corresponding bit needs to be set in this bitmap.<br>
