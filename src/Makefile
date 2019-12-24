@@ -1,5 +1,5 @@
 CC := gcc
-CFLAGS := -Wall -Wextra -DNDEBUG
+CFLAGS := -O3 -Wall -Wextra -DNDEBUG
 
 CFLAGS += $(USER_FLAGS)
 
