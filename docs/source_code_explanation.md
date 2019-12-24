@@ -90,7 +90,8 @@ struct shm_block_mgmt {
 
 This is a part of <em>shm allocatable region</em> and is located in the start of it i.e. offset is 0. Its size is obtained by 
 <a href="https://www.freebsd.org/cgi/man.cgi?sektion=3&query=getpagesize"><code>getpagesize(3)</code></a>. When mapping
-the file into the process, this region is made readonly.
+the file into the process, this region is made readonly. Management blocks for shm null exists as well, as it is a part of
+allocatable region. They are changed to mark shm null blocks as allocated while initialising shared memory.
 
 <h2>Shm Data Table</h2>
 
