@@ -65,6 +65,7 @@ type <code>struct shm_block_mgmt</code> which is defined as follows:
 struct shm_block_mgmt {
     _Atomic(shm_bitmap) mgmt_bmp[BMP_ARR_SIZE];
     _Atomic(size_t)     mem_used;
+    _Atomic(uint8_t)    ffs_posn;
 };
 </pre>
 
@@ -107,9 +108,16 @@ struct shm_block_mgmt {
 			</ol>
 	</li>
 	<li>
-<h4>mem_used</h4>
-	<code>mem_used</code> holds the amount of memory used in block. This variable is only for optimising the code. If the 
-	<code>memory needed + mem_used > max allocatable size</code>, then we skip this block.
+		<h4>mem_used</h4>
+			<code>mem_used</code> holds the amount of memory used in block. This variable is only for optimising the code. If the 
+			<code>memory needed + mem_used > max allocatable size</code>, then we skip this block.
+	</li>
+	<li>
+		<h4>ffs_posn</h4>
+			This variable is just used for optimisation. It is incremented everytime before process is about to check
+			the first set bit in <code>occupy_mem_in_bitmap()</code>. If it is divisible by 2, first set bit from 
+			left hand side is checked else from the right hand side. This reduces clashes among processes as some look for
+			bits from L.H.S and some from R.H.S in the bitmap.
 	</li>
 </ul>
 
