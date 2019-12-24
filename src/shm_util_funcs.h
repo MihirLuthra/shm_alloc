@@ -19,17 +19,17 @@ unsigned long long get_next_power_of_two(unsigned long long);
  * BMP_ARR_SIZE         = 4
  * BITS                 = 64 (implies shm_bitmap is uint64_t)
  * BITMAP_SIZE          = 256
- * 
+ *
  * First bit is unused, remaining 255 bits:
  *
- * 0 --> 4096 
- * 00 --> 2048 
- * 0000 --> 1024 
- * 00000000 --> 512 
- * 0000000000000000 --> 256 
- * 00000000000000000000000000000000 --> 128 
- * 0000000000000000000000000000000000000000000000000000000000000000 --> 64 
- * 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 --> 32 
+ * 0 --> 4096
+ * 00 --> 2048
+ * 0000 --> 1024
+ * 00000000 --> 512
+ * 0000000000000000 --> 256
+ * 00000000000000000000000000000000 --> 128
+ * 0000000000000000000000000000000000000000000000000000000000000000 --> 64
+ * 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 --> 32
  *
  */
 
@@ -45,6 +45,17 @@ unsigned long long get_next_power_of_two(unsigned long long);
  *  A shm buddy bitmap
  */
 int shm_bitmap_ffs(shm_bitmap []);
+
+/*
+ * retval:
+ *  Returns one plus the index of the most significant 1-bit of param1,
+ *  or if not bit is set, zero is returned.
+ *  Also it returns posn starting from left.
+ *
+ * param1:
+ *  A shm buddy bitmap
+ */
+int shm_bitmap_ffs_from_left(shm_bitmap []);
 
 /*
  * Description:
@@ -266,7 +277,7 @@ int get_bit_cnt_for_mem_level(size_t);
  *  Current memory level
  *
  * param3:
- *  New memory level 
+ *  New memory level
  */
 int normalize_bit_pos_for_level(int, size_t, size_t);
 

@@ -677,7 +677,26 @@ int occupy_mem_in_bitmap(struct shm_block_mgmt *blk_mgr, size_t mem)
 
 	do {
 
+#if SHM_LEFT_FFS
+		first_set_bit = shm_bitmap_ffs_from_left(mask) -1;
+#elif SHM_RIGHT_FFS
 		first_set_bit = BITMAP_SIZE - (shm_bitmap_ffs(mask) ? : BITMAP_SIZE + 1);
+#else
+		/*
+		 * shm_bitmap_ffs_from_left() returns first set bit from the L.H.S
+		 * and shm_bitmap_ffs() returns first set bit from the R.H.S.
+		 *
+		 * ffs_posn is incremented everytime a process needs
+		 * first set bit.
+		 * Now some processes check from L.H.S while others on R.H.S.
+		 * This reduces clashes among processes and optimises code.
+		 */
+		if (atomic_fetch_add(&blk_mgr->ffs_posn, 1) % 2 == 0) {
+			first_set_bit = shm_bitmap_ffs_from_left(mask) -1;
+		} else {
+			first_set_bit = BITMAP_SIZE - (shm_bitmap_ffs(mask) ? : BITMAP_SIZE + 1);
+		}
+#endif
 
 		/* memory not available in this bitmap */
 		if (first_set_bit == -1)
