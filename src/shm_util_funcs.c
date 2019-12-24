@@ -34,6 +34,18 @@ unsigned long long get_next_power_of_two(unsigned long long num)
 	return (1ULL << ((sizeof(unsigned long long)*8) - __builtin_clzll(num-1)));
 }
 
+
+int shm_bitmap_ffs_from_left(shm_bitmap bmp[BMP_ARR_SIZE])
+{
+	int pos;
+
+	for (int i = 0 ; i < BMP_ARR_SIZE ; ++i)
+		if ((pos = (bmp[i] ? (__builtin_clzll(bmp[i]) + 1) : 0)) != 0)
+			return (BITS * i + pos);
+
+	return 0;
+}
+
 int shm_bitmap_ffs(shm_bitmap bmp[BMP_ARR_SIZE])
 {
 	int pos;

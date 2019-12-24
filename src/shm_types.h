@@ -36,6 +36,7 @@ struct shm_data_table {
 struct shm_block_mgmt {
 	_Atomic(shm_bitmap) mgmt_bmp[BMP_ARR_SIZE];
 	_Atomic(size_t)     mem_used;
+	_Atomic(uint8_t)    ffs_posn;
 };
 
 struct blk_hdr {
