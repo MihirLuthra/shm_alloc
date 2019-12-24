@@ -15,18 +15,6 @@ export SHM_FILE="path/to/shm/file"
             <li>
                 The file shouldn't exist before.
             </li>
-            <li>
-                If you want to use a different env variable, compile the code defining <codeSHM_PATH_ENV_NAME</code> to a
-				string with new env variable name as follows:      
-<pre>
-make USER_FLAGS='-D SHM_PATH_ENV_NAME=&lt;env_name&gt;'
-</pre>
-                This macro is to be defined as a string. So for instance, if the name of the environment variable is 
-                NEW_SHM_FILE, then do like:       
-<pre>
-make USER_FLAGS='-D SHM_PATH_ENV_NAME=\"NEW_SHM_FILE\"'
-</pre>
-            </li>
         </ol>
     </li>
 	<li>
@@ -59,43 +47,60 @@ export LD_LIBRARY_PATH="/path/to/lib:$LD_LIBRARY_PATH"
 </pre>
 			</li>
 			<li>
-				To allocate <code>n</code> bytes(where n < max allocatable size) in shared memory:
+				<h4>shm_malloc()</h4>
+					To allocate <code>n</code> bytes(where n < max allocatable size) in shared memory:
 <pre>
+assert(n <= get_shm_max_allocatable_size());<br>
 shm_offt mem_offset = shm_malloc(n);<br>		
 if (mem_offset == SHM_NULL) {
 	//Couldn't get memory
 	//Handle here
 }
 </pre>
-				To get max allocatable size, call <code>get_shm_max_allocatable_size()</code>.<br>
-				<code>shm_malloc()</code> returns <code>SHM_NULL</code> if it couldn't allocate memory.<br>
-				<code>shm_calloc()</code> can be used similarly:
+			</li>
+			<li>
+				<h4>get_shm_max_allocatable_size()</h4>
+					To get max allocatable size, call <code>get_shm_max_allocatable_size()</code>.
+					Use this function to get max allocatable size and do NOT assume it on the basis of
+					<code>MAX_ALLOC_POW2</code> as some size is used for headers.
+			</li>
+			<li>
+				<h4>SHM_NULL</h4>
+					<code>shm_(m|c)alloc()</code> returns <code>SHM_NULL</code> if it couldn't allocate memory.<br>
+					It has a value of 0 and at that offset of shared memory, mapping is readonly.
+			</li>
+			<li>
+				<h4>shm_calloc()</h4>
+					<code>shm_calloc()</code> can be used similarly like shm_malloc():
 <pre>
+assert(n <= get_shm_max_allocatable_size());<br>
 shm_offt mem_offset = shm_calloc(1, n);<br>		
 if (mem_offset == SHM_NULL) {
 	//Couldn't get memory
 	//Handle here
 }
 </pre>
-				<code>shm_calloc()</code> also sets the allocated region to all 0.			
+					<code>shm_calloc()</code> also sets the allocated region to all 0.	
 			</li>
 			<li>
-				To access allocated memory, you need shm base first:
+				<h4>Accessing allocated memory: get_shm_user_base() and user_shm_base</h4>
+					To access allocated memory, you need shm base first:
 <pre>
 void *shm_base = get_shm_user_base();
 </pre>
-				Then access the previously allocated memory as:
+					Then access the previously allocated memory as:
 <pre>
 void * mem = (uint8_t *)shm_base + mem_offset;
 </pre>
-				Instead of calling <code>get_shm_user_base()</code>, you can also use the global variable
-				<code>user_shm_base</code> directly as:
+					Instead of calling <code>get_shm_user_base()</code>, you can also use the global variable
+					<code>user_shm_base</code> directly as:
 <pre>
 void * mem = user_shm_base + mem_offset;
 </pre>
 			</li>
 			<li>
-				When done with using the memory, free it like:
+				<h4>shm_free()</h4>
+					When done with using the memory, free it like:
 <pre>
 shm_free(mem_offset);
 </pre>
@@ -105,6 +110,19 @@ shm_free(mem_offset);
 	<li>
 		<h3>Changing default settings</h3>
 		<ol>
+			<li>
+				Changing default env variable name:<br>
+                If you want to use a different env variable, compile the code defining <codeSHM_PATH_ENV_NAME</code> to a
+				string with new env variable name as follows:      
+<pre>
+make USER_FLAGS='-D SHM_PATH_ENV_NAME=&lt;env_name&gt;'
+</pre>
+                This macro is to be defined as a string. So for instance, if the name of the environment variable is 
+                NEW_SHM_FILE, then do like:       
+<pre>
+make USER_FLAGS='-D SHM_PATH_ENV_NAME=\"NEW_SHM_FILE\"'
+</pre>
+            </li>
 			<li>
 				Changing default max allocatable size:
 <pre>
