@@ -4,6 +4,7 @@
 #include "shm_constants.h"
 #include "shm_types.h"
 #include "shm_debug.h"
+#include "shm_util_funcs.h"
 
 #include <stdlib.h>
 #include <string.h>

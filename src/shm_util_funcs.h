@@ -6,10 +6,21 @@
 
 #include <stdbool.h>
 
+#if SHM_USE_LONG == 1
+#	define __BUILTIN_POPCOUNT(num)  __builtin_popcountl(num)
+#	define __BUILTIN_CLZ(num)       __builtin_clzl(num)
+#	define __BUILTIN_FFS(num)       __builtin_ffsl(num)
+#elif SHM_USE_INT == 1
+#	define __BUILTIN_POPCOUNT(num)  __builtin_popcount(num)
+#	define __BUILTIN_CLZ(num)       __builtin_clz(num)
+#	define __BUILTIN_FFS(num)       __builtin_ffs(num)
+#endif
+
+
 /* general operations */
-bool is_power_of_two(unsigned long long);
-unsigned long long get_prev_power_of_two(unsigned long long);
-unsigned long long get_next_power_of_two(unsigned long long);
+bool is_power_of_two(unsigned long);
+unsigned long get_prev_power_of_two(unsigned long);
+unsigned long get_next_power_of_two(unsigned long);
 
 /*
  * EXAMPLE BUDDY BITMAP:

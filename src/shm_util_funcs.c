@@ -12,26 +12,27 @@
 #include <stdatomic.h>
 #include <stdbool.h>
 
-bool is_power_of_two(unsigned long long num)
+
+bool is_power_of_two(unsigned long num)
 {
-	return (1 == __builtin_popcountll(num));
+	return (1 == __BUILTIN_POPCOUNT(num));
 }
 
-unsigned long long get_prev_power_of_two(unsigned long long num)
+unsigned long get_prev_power_of_two(unsigned long num)
 {
 	if (num == 0)
 		num = -1;
 
-	return (1ULL << ((sizeof(unsigned long long)*8) - 1 - __builtin_clzll(num)));
+	return (1UL << ((sizeof(unsigned long)*8) - 1 - __BUILTIN_CLZ(num)));
 }
 
 
-unsigned long long get_next_power_of_two(unsigned long long num)
+unsigned long get_next_power_of_two(unsigned long num)
 {
-	if (num == 1 || num > (-1ULL)/2 + 1)
+	if (num == 1 || num > (-1UL)/2 + 1)
 		return 1;
 
-	return (1ULL << ((sizeof(unsigned long long)*8) - __builtin_clzll(num-1)));
+	return (1UL << ((sizeof(unsigned long)*8) - __BUILTIN_CLZ(num-1)));
 }
 
 
@@ -40,7 +41,7 @@ int shm_bitmap_ffs_from_left(shm_bitmap bmp[BMP_ARR_SIZE])
 	int pos;
 
 	for (int i = 0 ; i < BMP_ARR_SIZE ; ++i)
-		if ((pos = (bmp[i] ? (__builtin_clzll(bmp[i]) + 1) : 0)) != 0)
+		if ((pos = (bmp[i] ? (__BUILTIN_CLZ(bmp[i]) + 1) : 0)) != 0)
 			return (BITS * i + pos);
 
 	return 0;
@@ -51,7 +52,7 @@ int shm_bitmap_ffs(shm_bitmap bmp[BMP_ARR_SIZE])
 	int pos;
 
 	for (int i = (BMP_ARR_SIZE-1) ; i >= 0 ; --i)
-		if ((pos = __builtin_ffsll(bmp[i])) != 0)
+		if ((pos = __BUILTIN_FFS(bmp[i])) != 0)
 			return (((BMP_ARR_SIZE - 1 - i) * BITS) + pos - (BITS > BITMAP_SIZE ? (BITS-BITMAP_SIZE) :0));
 
 	return 0;
@@ -75,14 +76,14 @@ bool is_bit_set(shm_bitmap bmp[BMP_ARR_SIZE], int pos)
 {
 	assert(pos >= 0 && pos < BITMAP_SIZE);
 	int idx = pos/BITS;
-	return (bmp[idx] & (1ULL << (BITS - (pos % BITS) - 1)));
+	return (bmp[idx] & (1UL << (BITS - (pos % BITS) - 1)));
 }
 
 void set_bit(shm_bitmap bmp[BMP_ARR_SIZE], int pos)
 {
 	assert(pos >= 0 && pos < BITMAP_SIZE);
 	int idx = pos/BITS;
-	bmp[idx] |= 1ULL << (BITS - (pos % BITS) - 1);
+	bmp[idx] |= 1UL << (BITS - (pos % BITS) - 1);
 }
 
 bool set_bit_race_free(_Atomic(shm_bitmap) bmp[BMP_ARR_SIZE], int pos)
@@ -96,7 +97,7 @@ bool set_bit_race_free(_Atomic(shm_bitmap) bmp[BMP_ARR_SIZE], int pos)
 	index = pos/BITS;
 
 	mask = 0;
-	mask |= 1ULL << (BITS - (pos % BITS) - 1);
+	mask |= 1UL << (BITS - (pos % BITS) - 1);
 
 	assert(mask != 0);
 
@@ -128,7 +129,7 @@ bool unset_bit_race_free(_Atomic(shm_bitmap) bmp[BMP_ARR_SIZE], int pos)
 	index = pos/BITS;
 
 	mask = 0;
-	mask |= 1ULL << (BITS - (pos % BITS) - 1);
+	mask |= 1UL << (BITS - (pos % BITS) - 1);
 
 	assert(mask != 0);
 
@@ -193,7 +194,7 @@ bool is_bit_range_zero(shm_bitmap bmp[BMP_ARR_SIZE], int from, int to)
 	set_mask_for_range(mask, from, to);
 
 	for (int idx = 0 ; idx < BMP_ARR_SIZE ; ++idx)
-		if ((bmp[idx] & mask[idx]) != 0ULL)
+		if ((bmp[idx] & mask[idx]) != 0UL)
 			return (false);
 
 	return (true);
