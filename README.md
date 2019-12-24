@@ -5,6 +5,7 @@
 <ul>
     <li><a href="https://github.com/MihirLuthra/shm_alloc#what-is-it">What is it?</a></li>
     <li><a href="https://github.com/MihirLuthra/shm_alloc#when-to-use">When to use?</a></li>
+    <li><a href="https://github.com/MihirLuthra/shm_alloc#use-case">Use case</a></li>
     <li><a href="https://github.com/MihirLuthra/shm_alloc#how-to-use">How to use?</a></li>
 </ul>
 
@@ -61,6 +62,24 @@ shm_free()
     </li>
 </ol>
 
+# Use case
+
+<ol>
+    <li>
+        It is meant to be used alongside a <a href="https://en.wikipedia.org/wiki/Ctrie">ctrie</a> data structure into which 
+        multiple processes may insert path names. Memory requests are not more than 4096 in our case and even if they are, 
+        it's ok to ignore such requests as its just for caching.
+    </li>
+    <li>
+        This library needs to be injected into anonymous processes where it would intercept various system calls & library 
+        functions and perform operations with shared memory. So using locks is not a good idea as the process may get 
+        interrupted by a signal or maybe even called inside a signal handler or any such similar situation may cause a 
+        deadlock. As it may even be called inside a signal handler, its essential to use 
+        <a href="http://man7.org/linux/man-pages/man7/signal-safety.7.html">asyc-signal-safe functions</a>. That's one more
+        reason why shared memory initialisation that requires <code>mmap(2)</code> is done with <a href="https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html"><code>__attribute__((constructor))</code></a>
+        (as it is not considered asyc safe at the present time).
+    </li>
+</ol>
 
 # How to use?
 
