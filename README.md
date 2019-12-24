@@ -43,11 +43,21 @@ shm_free()
         This has been tested on macOS till now. 
     </li>
     <li>
-        It is meant to be used for caching. It can't allocate memory beyond its max limit. Like, if the max allocatable size
-        is set to 4096, any requests for memory greater than that from <code>shm_malloc()</code> will return null. The code 
-        needs to be compiled with max and min limits. Defaults for min and max are 32 bytes(2^5) and 4096(2^12) bytes
-        respectively. In order to change these, code needs to be recompiled with new limits which need to be power of 2.(described in <a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/how_to_use.md#changing-default-settings">How to use</a>).
-    The code will be efficient if the the difference in the powers is less. Like currently 12(2^12 = 4096) - 5(2^5 = 32) = 7.
+        It is meant to be used for caching. It can't allocate memory beyond its max limit. No matter how big is the shared 
+        memory itself, it is still divided into blocks. The block size is the max allocatable size. Like, if the max 
+        allocatable size is set to 4096, any requests for memory greater than that from <code>shm_malloc()</code> will return 
+        null(even if the shared memory itself was 256 MB). The code needs to be compiled with max and min limits. Defaults for 
+        min and max are 32 bytes(2^5) and 4096(2^12) bytes respectively. In order to change these, code needs to be recompiled 
+        with new limits which need to be power of 2.(described in <a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/how_to_use.md#changing-default-settings">How to use</a>).
+        The code will be efficient if the the difference in the powers is less. Like currently 12(2^12 = 4096) - 5(2^5 = 32) = 
+        7.
+    </li>
+    <li> 
+        The block size (i.e. max allocatable size) need not be small. Max allocatable size and min allocatable size always 
+        need to be powers of 2. The difference in these powers of 2 is what needs to be small. For example, Even if max 
+        allocatable size is 1048576 (2^20) and min allocatable size is 32768 (2^15), the code should still be efficient as 
+        20-15 = 5. But in this scenario, if memory less than 32768 is requested from <code>shm_malloc()</code>, it would still
+        allocate 32768 bytes.
     </li>
 </ol>
 
