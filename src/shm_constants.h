@@ -56,21 +56,21 @@ size_t get_shm_mapping_size();
 
 
 #if !defined(MAX_ALLOC_POW2)
-#	define MAX_ALLOC_POW2 (12) /* 1ULL << 12 = 4096   */
+#	define MAX_ALLOC_POW2 (12) /* 1UL << 12 = 4096   */
 #endif
 
 #if !defined(MIN_ALLOC_POW2)
-#	define MIN_ALLOC_POW2 (5)  /* 1ULL << 5  = 32     */
+#	define MIN_ALLOC_POW2 (5)  /* 1UL << 5  = 32     */
 #endif
 
 
 /*
  * The size of mapping that is for allocating.
  * This need not necessarily be power of 2.
- * 1ULL << 28 = 256 MB
+ * 1UL << 28 = 256 MB
  */
 #if !defined(MAX_ALLOCATABLE_SHM_SIZE)
-#	define MAX_ALLOCATABLE_SHM_SIZE (size_t)(1ULL << (8+10+10))
+#	define MAX_ALLOCATABLE_SHM_SIZE (size_t)(1UL << (8+10+10))
 #endif /* !defined(SHM_CUSTOM_ALLOCATABLE_SIZE) */
 
 
@@ -95,8 +95,8 @@ size_t get_shm_mapping_size();
  * Should always be a power of 2, that why they are to be set via
  * M(AX|IN)_ALLOC_POW2
  */
-#define MAX_ALLOCATABLE_SIZE (size_t)(1ULL << MAX_ALLOC_POW2)
-#define MIN_ALLOCATABLE_SIZE (size_t)(1ULL << MIN_ALLOC_POW2)
+#define MAX_ALLOCATABLE_SIZE (size_t)(1UL << MAX_ALLOC_POW2)
+#define MIN_ALLOCATABLE_SIZE (size_t)(1UL << MIN_ALLOC_POW2)
 
 #define BITMAP_SIZE  (int)((MAX_ALLOCATABLE_SIZE/MIN_ALLOCATABLE_SIZE) * 2)
 #define BMP_ARR_SIZE (int)((BITMAP_SIZE/BITS) + (BITMAP_SIZE % BITS > 0 ? 1 : 0))

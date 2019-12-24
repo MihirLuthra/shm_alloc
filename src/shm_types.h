@@ -4,12 +4,24 @@
 #include "shm_user_types.h"
 #include "shm_constants.h"
 
+#include <stdatomic.h>
+
 #include <stdint.h>
 
-#if defined(__LP64__)
-typedef uint64_t shm_bitmap;
-#else
-typedef uint32_t shm_bitmap;
+#if ATOMIC_LONG_LOCK_FREE == 2
+
+#	define SHM_USE_LONG (1)
+typedef unsigned long shm_bitmap;
+
+#elif ATOMIC_INT_LOCK_FREE == 2
+
+#	define SHM_USE_INT (1)
+typedef unsigned int shm_bitmap;
+
+#else /* ATOMIC_INT_LOCK_FREE == 2 */
+
+#	error "ATOMIC_LONG_LOCK_FREE and ATOMIC_INT_LOCK_FREE are both not 2, can't proceed"
+
 #endif
 
 
