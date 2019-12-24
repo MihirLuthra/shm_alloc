@@ -45,11 +45,13 @@ struct shm_block_mgmt {
 };
 </pre>
 
-<h4>mgmt_bmp</h4>
 <ol>
 	<li>
-	Bits in <code>mgmt_bmp</code> manage memory allocation in the corresponding block in allocatable region. 
-	Using default values of max/min allocatable size, bitmap would look like:
+		<h4>mgmt_bmp</h4>
+			<ol>
+				<li>
+				Bits in <code>mgmt_bmp</code> manage memory allocation in the corresponding block in allocatable region. 
+				Using default values of max/min allocatable size, bitmap would look like:
 <pre>
 0 --> unused bit
 0 --> 4096 
@@ -61,30 +63,32 @@ struct shm_block_mgmt {
 0000000000000000000000000000000000000000000000000000000000000000 --> 64 
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 --> 32 
 </pre>
+				</li>
+				<li>
+					This bitmap is used as the <a href="https://en.wikipedia.org/wiki/Buddy_memory_allocation">buddy system</a>.
+				</li>
+				<li>
+					Here <code>mgmt_bmp</code> has 256 bits although only 255 bits are needed. Number of bits are defined in <code>BITMAP_SIZE</code>
+					This bitmap is achieved by an array of type <code>shm_bitmap</code> where array size is defined with <code>BMP_ARR_SIZE</code>.
+					<code>shm_bitmap</code> is <code>uint64_t</code> if <a href="https://gcc.gnu.org/onlinedocs/cpp/Common-Predefined-Macros.html">
+					<code>__LP64__</code></a> is set else it is <code>uint32_t</code>.<br>
+				</li>
+				<li>
+					To allocate memory in the block, the corresponding bit needs to be set in this bitmap.<br>
+					For example, if a bit in memory level 512 is set, none of its parent or children level may have any bit set coming directly
+					above or below it respectively.<br>
+				</li>
+				<li>
+					To free the memory, only that particular bit needs to be unset.
+				</li>
+			</ol>
 	</li>
 	<li>
-		This bitmap is used as the <a href="https://en.wikipedia.org/wiki/Buddy_memory_allocation">buddy system</a>.
-	</li>
-	<li>
-		Here <code>mgmt_bmp</code> has 256 bits although only 255 bits are needed. Number of bits are defined in <code>BITMAP_SIZE</code>
-		This bitmap is achieved by an array of type <code>shm_bitmap</code> where array size is defined with <code>BMP_ARR_SIZE</code>.
-		<code>shm_bitmap</code> is <code>uint64_t</code> if <a href="https://gcc.gnu.org/onlinedocs/cpp/Common-Predefined-Macros.html">
-		<code>__LP64__</code></a> is set else it is <code>uint32_t</code>.<br>
-	</li>
-	<li>
-		To allocate memory in the block, the corresponding bit needs to be set in this bitmap.<br>
-		For example, if a bit in memory level 512 is set, none of its parent or children level may have any bit set coming directly
-		above or below it respectively.<br>
-	</li>
-	<li>
-		To free the memory, only that particular bit needs to be unset.
-	</li>
-</ol>
-
 <h4>mem_used</h4>
 	<code>mem_used</code> holds the amount of memory used in block. This variable is only for optimising the code. If the 
 	<code>memory needed + mem_used > max allocatable size</code>, then we skip this block.
-
+	</li>
+</ol>
 
 <h2>Shm Null</h2>
 
