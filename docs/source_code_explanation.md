@@ -1,4 +1,27 @@
-<h1>Complete Explanation</h1>
+<h1>Abstract</h1>
+The basic working of code goes as follows:
+<ol>
+	<li>
+		File at path given by env variable <code>SHM_FILE</code> is <a href="http://man7.org/linux/man-pages/man2/mmap.2.html"><code>mmap(2)</code></a>'d into process' address space.
+		If the file doesn't exist it is created. As the file is given its size by <a href="https://linux.die.net/man/2/ftruncate"><code>ftruncate(2)</code></a>,
+		it is initialised with all 0. All this is done before <code>main()</code> in by the help of <code>__attribute__((constructor))</code>.
+	</li>
+	<li>
+		When <code>shm_malloc()</code> is asked for memory, it is rounded up to the next power of 2. Then management blocks are 
+		checked for free bits as per the requirement. The bit is set and offset corresponding to it in the allocatable region
+		is returned.
+	</li>
+	<li>
+		To access the allocated shared memory, user needs to get the base of allocatable region by <code>get_shm_user_base()</code>.
+		Then offset needs to be added to the base, while typecasting base to <code>uint8_t *</code>.
+	</li>
+	<li>
+		To free the memory, <code>shm_free()</code> is called and it unsets the bit corresponding to the offset supplied.
+	</li>
+</ol>
+	
+
+<h1>Explanation</h1>
 
 <img src="shared_memory.png" alt="shared memory file structure" width="600" height="400"><br><br><br>
 To start with, consider a file. The file's size is obtained by a <code>get_shm_mapping_size()</code> defined in
@@ -45,7 +68,7 @@ struct shm_block_mgmt {
 };
 </pre>
 
-<ol>
+<ul>
 	<li>
 		<h4>mgmt_bmp</h4>
 			<ol>
@@ -88,7 +111,7 @@ struct shm_block_mgmt {
 	<code>mem_used</code> holds the amount of memory used in block. This variable is only for optimising the code. If the 
 	<code>memory needed + mem_used > max allocatable size</code>, then we skip this block.
 	</li>
-</ol>
+</ul>
 
 <h2>Shm Null</h2>
 
@@ -108,7 +131,9 @@ struct shm_data_table {
 };
 </pre>
 
-<h4>start_blk_mgr_offt</h4>
+<ul>
+	<li>
+	<h4>start_blk_mgr_offt</h4>
 	For a fresh shared memory i.e. all memory is unused, It stores offset to the first management block that is not full.
 	Just think for once that no memory is being freed and blocks keep getting filled one by one. To allocate memory
 	when n blocks are full, it would take n iterations to reach n+1<sup>th</sup>. So to avoid that, whenever a block
@@ -119,4 +144,5 @@ struct shm_data_table {
 	start of the management area upto <code>start_blk_mgr_offt</code> to search for memory, if any was freed by
 	<code>shm_free()</code>.<br>
 	To optimize the second scan, we need to implement a freelist as well(#TODO).
-	
+	</li>
+</ul>
