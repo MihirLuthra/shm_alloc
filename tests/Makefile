@@ -1,7 +1,7 @@
 SHM_DIR := ../src/
 
 CC := gcc
-CFLAGS  := -D TEST_THE_TEST=0 -Wall -Wextra -fsanitize=address -I$(SHM_DIR)
+CFLAGS  := -O3 -D TEST_THE_TEST=0 -Wall -Wextra -fsanitize=address -I$(SHM_DIR)
 
 test_shm_alloc.out: test_shm_alloc.c $(SHM_DIR)libshm_alloc.so rand_string_generator.o
 	cp $(SHM_DIR)libshm_alloc.so .
