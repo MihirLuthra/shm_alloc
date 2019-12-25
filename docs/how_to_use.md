@@ -112,7 +112,7 @@ shm_free(mem_offset);
 		<ol>
 			<li>
 				Changing default env variable name:<br>
-                If you want to use a different env variable, compile the code defining <codeSHM_PATH_ENV_NAME</code> to a
+                If you want to use a different env variable, compile the code defining <code>SHM_PATH_ENV_NAME</code> to a
 				string with new env variable name as follows:      
 <pre>
 make USER_FLAGS='-D SHM_PATH_ENV_NAME=&lt;env_name&gt;'
@@ -135,7 +135,7 @@ make USER_FLAGS='-D MAX_ALLOC_POW2=&lt;new_pow&gt;'
 <pre>
 make USER_FLAGS='-D MIN_ALLOC_POW2=&lt;new_pow&gt;'
 </pre>
-				For example, setting new power to 10 means max allocatable size is 2^10 = 1024
+				For example, setting new power to 10 means min allocatable size is 2^10 = 1024
 			</li>
 			<li>
 				Changing default shared memory size:
