@@ -7,6 +7,7 @@
 extern uint8_t *user_shm_base;
 
 void __attribute__((constructor)) shm_init(void);
+void shm_deinit(void);
 
 void * get_shm_user_base(void);
 
