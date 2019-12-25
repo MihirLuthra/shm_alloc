@@ -30,6 +30,7 @@ shm_free()
         The shared memory is just a regular file which is <code>mmap(2)</code>'d in the processes. This is done before
         <code>main()</code> is called via 
         <a href="https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html"><code>__attribute__((constructor))</code></a>.
+		Although this behaviour maybe modified as explained in <a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/how_to_use.md#changing-default-settings">changing defaults section</a>.
     </li>
     <li>
         The shared memory is divided into small blocks and allocation of each block is managed by a buddy system in form of 
@@ -50,7 +51,7 @@ shm_free()
         allocatable size is set to 4096, any requests for memory greater than that from <code>shm_malloc()</code> will return 
         null(even if the shared memory itself was 256 MB). The code needs to be compiled with max and min limits. Defaults for 
         min and max are 32 bytes(2^5) and 4096(2^12) bytes respectively. In order to change these, code needs to be recompiled 
-        with new limits which need to be power of 2.(described in <a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/how_to_use.md#changing-default-settings">How to use</a>).
+        with new limits which need to be power of 2.(described in <a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/how_to_use.md#changing-default-settings">changing defaults section</a>).
         The code will be efficient if the the difference in the powers is less. Like currently 12(2^12 = 4096) - 5(2^5 = 32) = 
         7.
     </li>
