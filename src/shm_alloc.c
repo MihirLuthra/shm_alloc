@@ -322,6 +322,8 @@ void __attribute__((constructor)) shm_init(void)
 		return;
 	}
 
+	(void)close(manager->shm_file.fd);
+
 	/*
 	 * As shm null exists in the allocatable region,
 	 * we need to set it manager to indicate that its completely
@@ -341,6 +343,24 @@ void __attribute__((constructor)) shm_init(void)
 	}
 
 	user_shm_base = ACCESS_SHM_FOR_USER(0);
+}
+
+void shm_deinit()
+{
+	if (manager == NULL) {
+		P_ERR("manager is NULL");
+		return;
+	}
+
+	int retval;
+
+	retval = munmap(manager->shm_mapping.base, manager->shm_mapping.size);
+
+	if (retval == -1) {
+		P_ERR("munmap(2) failed");
+	}
+
+	free(manager);
 }
 
 size_t get_shm_max_allocatable_size()

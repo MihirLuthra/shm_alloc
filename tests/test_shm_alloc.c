@@ -122,6 +122,7 @@ int main(int argc, char *argv[])
 	display_test_results(test_results, thread_count);
 
 	free_rand_strings(rand_strings, max_idx);
+	shm_deinit();
 
 	int status = 0;
 	while (wait(&status) > 0);
