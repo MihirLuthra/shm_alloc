@@ -49,7 +49,11 @@ export LD_LIBRARY_PATH="/path/to/lib:$LD_LIBRARY_PATH"
 			<li>
 				<h4>shm_init()</h4>
 					This is marked with <code>__attribute__((constructor))</code>, so this is called automatically
-					before main.
+					before main. It can be called within multiple processes/threads if needed. If you don't want it to be
+					called as a constructor, compile code with `-D SHM_DON_NOT_USE_CONSTRUCTOR=1`:
+<pre>
+make USER_FLAGS='-D SHM_DON_NOT_USE_CONSTRUCTOR=1'
+</pre>
 			</li>
 			<li>
 				<h4>shm_deinit()</h4>
