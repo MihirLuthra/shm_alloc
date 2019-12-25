@@ -52,7 +52,7 @@ struct inserted_data_mgr {
 	PTR(char) in_shm;
 	int       idx;
 
-	struct inserted_data_mgr * link; 
+	struct inserted_data_mgr * link;
 };
 
 struct test_results_mgr {
@@ -143,7 +143,7 @@ struct test_results_mgr ** spawn_threads_for_test(int thrd_cnt, void *(*tester_f
 	int i;
 	struct test_results_mgr ** test_results;
 	pthread_t * thrds;
-	
+
 	thrds = malloc(sizeof(pthread_t) * thrd_cnt);
 
 	if (thrds == NULL) {
@@ -161,7 +161,7 @@ struct test_results_mgr ** spawn_threads_for_test(int thrd_cnt, void *(*tester_f
 	for (i = 0 ; i < thrd_cnt ; ++i) {
 
 		test_results[i] = malloc(sizeof(struct test_results_mgr));
-		
+
 		if (test_results[i] == NULL) {
 			P_ERR("malloc(2) failed");
 			exit(EXIT_FAILURE);
@@ -187,9 +187,9 @@ void *tester_func(void *arg)
 	int idx;
 
 	test_result->status = true;
-	
+
 	while ((idx = atomic_fetch_add(&cur_idx, 1)) < max_idx) {
-	
+
 		str = shm_calloc(1, strlen(rand_strings[idx]) + 1);
 
 		if (str == SHM_NULL) {
@@ -240,10 +240,10 @@ void *tester_func(void *arg)
 				free(dequed_data);
 			} else {
 				OSAtomicFifoEnqueue(&queue, dequed_data, offsetof(struct inserted_data_mgr, link));
-				
+
 			}
 		}
-	
+
 	}
 
 

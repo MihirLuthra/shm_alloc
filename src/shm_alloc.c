@@ -34,11 +34,22 @@ static _Atomic(struct shm_manager *) manager = NULL;
 #define ACCESS_SHM_DATA_TABLE(offset) \
 	((struct shm_data_table *)((uint8_t *)manager->shm_mapping.base + get_shm_data_table_offt() + (offset)))
 
-#define ACCESS_SHM_MGMT_BY_BITMAP_NO(bitmap_no) \
+#define ACCESS_SHM_MGMT_BY_MGMT_BLK_NO(bitmap_no) \
 	ACCESS_SHM_MGMT((bitmap_no) * sizeof(struct shm_block_mgmt))
 
 #define ACCESS_SHM_MAPPING(offset) \
 	((void *)((uint8_t *)manager->shm_mapping.base + (offset)))
+
+
+
+#define ACCESS_SHM_MAPPING_BY_MANAGER(manager, offset) \
+	((void *)((uint8_t *)manager->shm_mapping.base + (offset)))
+
+#define ACCESS_SHM_MGMT_BY_MANAGER(manager, offset) \
+	((struct shm_block_mgmt *)((uint8_t *)manager->shm_mapping.base + get_shm_mgmt_base_offt() + (offset)))
+
+#define ACCESS_SHM_MGMT_BY_MGMT_BLK_NO_BY_MANAGER(manager, bitmap_no) \
+	ACCESS_SHM_MGMT_BY_MANAGER(manager, (bitmap_no) * sizeof(struct shm_block_mgmt))
 
 /*
  * shm base for user starts from offset to null.
@@ -213,93 +224,90 @@ bool check_if_parents_are_set(shm_bitmap [], int, size_t, size_t *);
 bool check_if_children_are_set(shm_bitmap [], int, size_t);
 
 /*
- * This is the constructor function which does the setting up
- * of shared mappings.
+ * param1:
+ *  A struct shm_manager * that whose values
+ *  were set by shm_init()
  *
- * It would first create/open a file that is to be used as
- * the shared memory, ftruncate(2) it to desired size(which also fills the file with zeros)
- * and mmap(2) the file into the current process.
- * Note:
- *  This function is only called before main() as per its attribute
- *  and child processes copy the mappings created by this function.
- *  In case if `__attribute__((constructor))` isn't usable, this function can handle
- *  being called within multiple processes/threads.
+ * Description:
+ *  unmaps the mappings whose addr is in manager
+ *  and frees the manager itself
  */
-void __attribute__((constructor)) shm_init(void)
+void shm_deinit_by_manager(struct shm_manager *);
+
+
+void shm_init(void)
 {
+	int retval, num_mgrs;
+	struct stat st;
+	struct shm_manager *new_manager, *old_manager;
+	struct shm_block_mgmt *null_blk_mgr;
+	void * shm_null_base;
+	size_t shm_null_size;
+
 	if (manager != NULL) {
 		return;
 	}
 
 	assert(get_shm_min_allocatable_size() < get_shm_max_allocatable_size());
 
-	int err;
-	struct stat st;
-
-	/*
-	 * In case of failures, remember to set manager = NULL
-	 * because that's the way it will be detected in (m|c)alloc
-	 * code
-	 */
-	manager = malloc(sizeof(struct shm_manager));
-	if (manager == NULL) {
+	new_manager = malloc(sizeof(struct shm_manager));
+	if (new_manager == NULL) {
 		P_ERR("malloc(2) failed");
 		return;
 	}
 
 	shm_null_init();
 
-	manager->shm_file.name = getenv(SHM_PATH_ENV_NAME);
+	new_manager->shm_file.name = getenv(SHM_PATH_ENV_NAME);
 
-	if (manager->shm_file.name == NULL) {
+	if (new_manager->shm_file.name == NULL) {
 
 		P_ERR("getenv(3) failed for \"%s\"", SHM_PATH_ENV_NAME);
 		exit(EXIT_FAILURE);
 	}
 
 	/* would create file if doesn't exist yet */
-	manager->shm_file.fd = open(manager->shm_file.name, O_CREAT | O_RDWR, 0666);
+	new_manager->shm_file.fd = open(new_manager->shm_file.name, O_CREAT | O_RDWR, 0666);
 
-	if (manager->shm_file.fd == -1) {
+	if (new_manager->shm_file.fd == -1) {
 		P_ERR("open(2) failed");
-		free(manager);
-		manager = NULL;
+		free(new_manager);
 		return;
 	}
 
-	err = fstat(manager->shm_file.fd, &st);
+	retval = fstat(new_manager->shm_file.fd, &st);
 
-	if (err == -1) {
+	if (retval == -1) {
 		P_ERR("fstat(2) failed");
-		free(manager);
-		manager = NULL;
+		free(new_manager);
 		return;
 	}
 
-	manager->shm_file.size = st.st_size;
-	manager->shm_mapping.size = get_shm_mapping_size();
+	new_manager->shm_file.size = st.st_size;
+	new_manager->shm_mapping.size = get_shm_mapping_size();
 
-	if (manager->shm_file.size == 0) {
+	if (new_manager->shm_file.size == 0) {
 
-		err = ftruncate(manager->shm_file.fd, manager->shm_mapping.size);
+		/*
+		 * Remember ftruncate(2) sets all file to 0
+		 */
+		retval = ftruncate(new_manager->shm_file.fd, new_manager->shm_mapping.size);
 
-		if (err == -1) {
-			free(manager);
-			manager = NULL;
+		if (retval == -1) {
+			free(new_manager);
 			P_ERR("ftruncate(2) failed");
 			return;
 		}
 
-		 manager->shm_file.size = manager->shm_mapping.size;
+		 new_manager->shm_file.size = new_manager->shm_mapping.size;
 	}
 
-	manager->shm_mapping.base =
-	    mmap(NULL, manager->shm_file.size, PROT_READ | PROT_WRITE, MAP_SHARED,
-	    manager->shm_file.fd, 0);
+	new_manager->shm_mapping.base =
+	    mmap(NULL, new_manager->shm_file.size, PROT_READ | PROT_WRITE, MAP_SHARED,
+	    new_manager->shm_file.fd, 0);
 
-	if (manager->shm_mapping.base == MAP_FAILED) {
-		free(manager);
-		manager = NULL;
+	if (new_manager->shm_mapping.base == MAP_FAILED) {
+		free(new_manager);
 		P_ERR("mmap(2) failed");
 		return;
 	}
@@ -310,57 +318,67 @@ void __attribute__((constructor)) shm_init(void)
 	 * if null region is accessed, error is generated
 	 * saying readonly memory accessed
 	 */
-	void * shm_null_base = ACCESS_SHM_MAPPING(get_shm_null_base_offt());
-	const size_t shm_null_size = get_shm_null_size();
+	shm_null_base = ACCESS_SHM_MAPPING_BY_MANAGER(new_manager, get_shm_null_base_offt());
+	shm_null_size = get_shm_null_size();
 
 	if (mmap(shm_null_base, shm_null_size, PROT_READ, MAP_SHARED | MAP_FIXED,
-	    manager->shm_file.fd, 0) == MAP_FAILED) {
+	    new_manager->shm_file.fd, 0) == MAP_FAILED) {
 
 		P_ERR("mmap(2) failed while setting shm null");
-		free(manager);
-		manager = NULL;
+		free(new_manager);
 		return;
 	}
 
-	(void)close(manager->shm_file.fd);
+	(void)close(new_manager->shm_file.fd);
 
 	/*
 	 * As shm null exists in the allocatable region,
-	 * we need to set it manager to indicate that its completely
+	 * we need to set its management block to indicate that its completely
 	 * used
 	 */
-	int num_mgrs;
-	struct shm_block_mgmt *null_blk_mgr;
-
 	num_mgrs = shm_null_size/MAX_ALLOCATABLE_SIZE + (shm_null_size % MAX_ALLOCATABLE_SIZE > 0 ? 1 : 0);
 
 	for (int mgr = 0 ; mgr < num_mgrs ; ++mgr) {
 
-		null_blk_mgr = ACCESS_SHM_MGMT_BY_BITMAP_NO(mgr);
+		null_blk_mgr = ACCESS_SHM_MGMT_BY_MGMT_BLK_NO_BY_MANAGER(new_manager, mgr);
 
 		(void)set_bit_race_free(null_blk_mgr->mgmt_bmp, get_start_bit_pos_for_mem_level(MAX_ALLOCATABLE_SIZE));
 		atomic_store(&null_blk_mgr->mem_used, MAX_ALLOCATABLE_SIZE);
 	}
 
+	old_manager = NULL;
+
+	if (!atomic_compare_exchange_strong_explicit(&manager, &old_manager, new_manager,
+	    memory_order_relaxed, memory_order_relaxed)) {
+
+		shm_deinit_by_manager(new_manager);
+		return;
+	}
+
 	user_shm_base = ACCESS_SHM_FOR_USER(0);
 }
 
-void shm_deinit()
+void shm_deinit_by_manager(struct shm_manager *this_manager)
 {
-	if (manager == NULL) {
+	int retval;
+
+	if (this_manager == NULL) {
 		P_ERR("manager is NULL");
 		return;
 	}
 
-	int retval;
-
-	retval = munmap(manager->shm_mapping.base, manager->shm_mapping.size);
+	retval = munmap(this_manager->shm_mapping.base, this_manager->shm_mapping.size);
 
 	if (retval == -1) {
 		P_ERR("munmap(2) failed");
 	}
 
-	free(manager);
+	free(this_manager);
+}
+
+void shm_deinit()
+{
+	shm_deinit_by_manager(manager);
 }
 
 size_t get_shm_max_allocatable_size()
@@ -468,7 +486,7 @@ void shm_free(shm_offt shm_ptr)
 
 	bmp_data = get_bmp_data_by_mem_offt_data(mem_offt_data);
 
-	blk_mgr = ACCESS_SHM_MGMT_BY_BITMAP_NO(bmp_data.bitmap_no);
+	blk_mgr = ACCESS_SHM_MGMT_BY_MGMT_BLK_NO(bmp_data.bitmap_no);
 
 	did_unset = unset_bit_race_free(blk_mgr->mgmt_bmp, bmp_data.abs_bit_pos);
 	assert(did_unset);
