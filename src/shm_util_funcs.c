@@ -2,7 +2,6 @@
 
 #include <string.h>
 
-#include "cas.h"
 #include "shm_debug.h"
 #include "shm_err.h"
 #include "shm_util_funcs.h"
@@ -113,7 +112,7 @@ bool set_bit_race_free(_Atomic(shm_bitmap) bmp[BMP_ARR_SIZE], int pos)
 			break;
 		}
 
-	} while ( !CAS(&bmp[index], &old_bmp, new_bmp) );
+	} while ( !atomic_compare_exchange_weak(&bmp[index], &old_bmp, new_bmp) );
 
 	return (cas_result);
 }
@@ -145,7 +144,7 @@ bool unset_bit_race_free(_Atomic(shm_bitmap) bmp[BMP_ARR_SIZE], int pos)
 			break;
 		}
 
-	} while ( !CAS(&bmp[index], &old_bmp, new_bmp) );
+	} while ( !atomic_compare_exchange_weak(&bmp[index], &old_bmp, new_bmp) );
 
 	return (cas_result);
 }
