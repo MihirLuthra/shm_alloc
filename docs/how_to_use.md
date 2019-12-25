@@ -1,6 +1,39 @@
 <h2>How to use?</h2>
 
 <ol>
+	<li>
+		<h3>Getting the library</h3>
+		Go to shm_alloc directory, then:
+<pre>
+cd src && make
+</pre>
+		This would produce the library <code>libshm_alloc.dylib</code> if macOS else <code>libshm_malloc.so</code>.
+		To use it, link <code>-lshm_alloc</code> while compiling you code. For example,
+<pre>
+gcc program.c -L/path/to/lib -lshm_alloc
+</pre>
+		Library should be in library search path otherwise it won't work. To set that, follow instructions in next point.
+	</li>
+	<li>
+		<h3>Set library search path</h3>
+		You may skip this step if you moved library to a path that compiler searches by default.<br><br>
+		<ol>
+			<li>
+				On macOS, add path of the directory where libshm_alloc.dylib file resides to the environment variable
+				<code>DYLD_FALLBACK_LIBRARY_PATH</code> as:
+<pre>
+export DYLD_FALLBACK_LIBRARY_PATH="/path/to/lib:$DYLD_FALLBACK_LIBRARY_PATH"
+</pre>
+			</li>
+			<li>
+				On linux, add path of the directory where libshm_alloc.so file resides to the environment variable
+				<code>LD_LIBRARY_PATH</code> as:
+<pre>
+export LD_LIBRARY_PATH="/path/to/lib:$LD_LIBRARY_PATH"
+</pre>
+			</li>
+		</ol>
+	</li>
     <li>
         <h3>Set the file to be used for shared memory</h3>
         <ol>
@@ -17,26 +50,6 @@ export SHM_FILE="path/to/shm/file"
             </li>
         </ol>
     </li>
-	<li>
-		<h3>Set library search path</h3>
-		You may skip this step if you moved library to a path that compiler searches by default.<br><br>
-		<ol>
-			<li>
-				On macOS, add path of the directory where libshm_alloc.so file resides to the environment variable
-				<code>DYLD_FALLBACK_LIBRARY_PATH</code> as:
-<pre>
-export DYLD_FALLBACK_LIBRARY_PATH="/path/to/lib:$DYLD_FALLBACK_LIBRARY_PATH"
-</pre>
-			</li>
-			<li>
-				On linux, add path of the directory where libshm_alloc.so file resides to the environment variable
-				<code>LD_LIBRARY_PATH</code> as:
-<pre>
-export LD_LIBRARY_PATH="/path/to/lib:$LD_LIBRARY_PATH"
-</pre>
-			</li>
-		</ol>
-	</li>
 	<li>
 		<h3>Using library functions</h3>
 		<ol>
