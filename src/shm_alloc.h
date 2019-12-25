@@ -23,7 +23,7 @@ extern uint8_t *user_shm_base;
  *  In case if `__attribute__((constructor))` isn't usable, this function can handle
  *  being called within multiple processes/threads.
  */
-#if SHM_DON_NOT_USE_CONSTRUCTOR
+#if SHM_DO_NOT_USE_CONSTRUCTOR
 void shm_init(void);
 #else
 void __attribute__((constructor)) shm_init(void);
