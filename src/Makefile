@@ -1,12 +1,25 @@
-CC := gcc
+detected_OS := $(shell uname 2>/dev/null || echo Unknown)
+
+ifeq ($(detected_OS), Darwin)
+CC                := clang
+DYLIB_EXT         := dylib
+DYNAMIC_LIB_FLAGS := -dynamiclib
+else
+CC                := gcc
+DYLIB_EXT         := so
+DYNAMIC_LIB_FLAGS := -fPIC -shared
+endif
+
 CFLAGS := -O3 -Wall -Wextra -DNDEBUG
 
 CFLAGS += $(USER_FLAGS)
 
-SHM_LIB_NAME := libshm_alloc.so
+
+SHM_LIB_NAME := libshm_alloc.$(DYLIB_EXT)
+
 
 $(SHM_LIB_NAME): shm_alloc.c shm_alloc.h shm_util_funcs.o shm_constants.o
-	$(CC) $(CFLAGS) -fPIC -shared -o $@ $< shm_util_funcs.o shm_constants.o
+	$(CC) $(CFLAGS) $(DYNAMIC_LIB_FLAGS) -o $@ $< shm_util_funcs.o shm_constants.o
 
 shm_util_funcs.o: shm_util_funcs.c shm_util_funcs.h shm_types.h shm_err.h
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -15,16 +28,18 @@ shm_constants.o: shm_constants.c shm_constants.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 
-.PHONY : clean
+.PHONY : clean debug
 
 clean:
-	rm *.so *.out .*.swp *.dbgfl *.o
+	rm *.so *.out .*.swp *.dbgfl *.o *.dylib
 
 # For debugging
 
-debug: shm_alloc.c shm_alloc.h shm_util_funcs.o shm_constants.o libshm_debug.so
-	$(CC) $(CFLAGS) -fPIC -shared -o $(SHM_LIB_NAME) $< shm_util_funcs.o shm_constants.o -L. -lshm_debug
+debug: shm_alloc.c shm_alloc.h shm_util_funcs.o shm_constants.o libshm_debug.$(DYLIB_EXT)
+	$(CC) $(CFLAGS) $(DYNAMIC_LIB_FLAGS) -o $(SHM_LIB_NAME) $< shm_util_funcs.o shm_constants.o -L. -lshm_debug
 
-libshm_debug.so: shm_debug.c shm_debug.h
-	$(CC) $(CFLAGS) -fPIC -shared -o $@ $<
+# TODO: Want to LD_PRELOAD this to intercept thread creation functions
+# So kept this a dylib
+libshm_debug.$(DYLIB_EXT): shm_debug.c shm_debug.h
+	$(CC) $(CFLAGS) $(DYNAMIC_LIB_FLAGS) -o $@ $<
 
