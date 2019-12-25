@@ -47,6 +47,15 @@ export LD_LIBRARY_PATH="/path/to/lib:$LD_LIBRARY_PATH"
 </pre>
 			</li>
 			<li>
+				<h4>shm_init()</h4>
+					This is marked with <code>__attribute__((constructor))</code>, so this is called automatically
+					before main.
+			</li>
+			<li>
+				<h4>shm_deinit()</h4>
+					This is used to free the mapping and other resources held for shared memory usage.
+			</li>
+			<li>
 				<h4>shm_malloc()</h4>
 					To allocate <code>n</code> bytes(where n < max allocatable size) in shared memory:
 <pre>
