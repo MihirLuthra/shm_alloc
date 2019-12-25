@@ -5,6 +5,7 @@
 <ul>
     <li><a href="https://github.com/MihirLuthra/shm_alloc#what-is-it">What is it?</a></li>
     <li><a href="https://github.com/MihirLuthra/shm_alloc#when-to-use">When to use?</a></li>
+     <li><a href="https://github.com/MihirLuthra/shm_alloc#tested-on">Tested on</a></li>
     <li><a href="https://github.com/MihirLuthra/shm_alloc#use-case">Use case</a></li>
     <li><a href="https://github.com/MihirLuthra/shm_alloc#how-to-use">How to use?</a></li>
     <li><a href="https://github.com/MihirLuthra/shm_alloc#source-code-explanation">Source code explanation</a></li>
@@ -42,7 +43,6 @@ shm_free()
 <ol>
     <li>
         It uses C11's atomic library. Also, it uses a lot of gcc extensions, which are available in clang as well.
-        This has been tested on macOS till now. 
     </li>
     <li>
         It is meant to be used for caching. It can't allocate memory beyond its max limit. No matter how big is the shared 
@@ -61,6 +61,13 @@ shm_free()
         20-15 = 5. But in this scenario, if memory less than 32768 is requested from <code>shm_malloc()</code>, it would still
         allocate 32768 bytes.
     </li>
+</ol>
+
+# Tested on
+
+<ol>
+	<li>macOS Catalina</li>
+	<li>Ubuntu 18.04(with and without -m32)</li>
 </ol>
 
 # Use case
