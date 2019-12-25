@@ -151,8 +151,7 @@ void set_bit(shm_bitmap [], int);
 
 /*
  * Description:
- *  Sets bit posn given by param2 in param1 by CAS
- *  defined in cas.h
+ *  Sets bit posn given by param2 in param1 by CAS.
  *  It won't tamper with bitmap if bit is already set
  *  and will return false.
  *
@@ -197,8 +196,7 @@ void unset_bit(shm_bitmap [], int);
 
 /*
  * Description:
- *  Unets bit posn given by param2 in param1 by CAS
- *  defined in cas.h
+ *  Unets bit posn given by param2 in param1 by CAS.
  *  It won't tamper with bitmap if bit is already unset
  *  and will return false.
  *
