@@ -65,7 +65,11 @@ size_t get_shm_mapping_size();
 #endif
 
 #if !defined(MIN_ALLOC_POW2)
-#	define MIN_ALLOC_POW2 (5)  /* 1UL << 5  = 32     */
+#	if defined(SHM_USE_LONG)
+#		define MIN_ALLOC_POW2 (5)  /* 1UL << 5  = 32     */
+#	else
+#		define MIN_ALLOC_POW2 (6)  /* 1UL << 6  = 64     */
+#	endif
 #endif
 
 
