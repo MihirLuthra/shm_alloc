@@ -5,7 +5,6 @@
 #include <errno.h>
 
 #include "shm_types.h"
-#include "shm_util_funcs.h"
 #include "shm_alloc.h"
 
 #include <stdio.h>
