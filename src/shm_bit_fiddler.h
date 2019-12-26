@@ -18,7 +18,7 @@
 #define BITS (sizeof(shm_bitmap) * 8)
 
 
-static inline shm_bitmap set_bit(shm_bitmap bmp, int bitpos) 
+static inline shm_bitmap set_bit(shm_bitmap bmp, int bitpos)
 {
 	return (bmp | (shm_bitmap)1 << (BITS - bitpos - 1));
 }
@@ -62,7 +62,7 @@ static inline shm_bitmap set_children_bits(shm_bitmap bmp, int bitpos, int multi
 	 *  So we just shift the bits obtained above at the correct posn
 	 *  and | with param1
 	 */
-    return (bmp | ((((shm_bitmap)1 << multiplier) - 1) << (BITS - bitpos*multiplier - 1 - (multiplier - 1))));
+	return (bmp | ((((shm_bitmap)1 << multiplier) - 1) << (BITS - bitpos*multiplier - 1 - (multiplier - 1))));
 }
 
 /*
@@ -83,7 +83,7 @@ static inline shm_bitmap set_children_bits(shm_bitmap bmp, int bitpos, int multi
  */
 static inline shm_bitmap set_bit_range(shm_bitmap bmp, int from, int cnt)
 {
-    return (bmp | ((((shm_bitmap)1 << cnt) - 1) << (BITS - from - 1 - (cnt - 1))));
+	return (bmp | ((((shm_bitmap)1 << cnt) - 1) << (BITS - from - 1 - (cnt - 1))));
 }
 
 static inline int get_start_bit_pos_for_mem_level(size_t mem)
@@ -93,24 +93,24 @@ static inline int get_start_bit_pos_for_mem_level(size_t mem)
 
 static inline bool is_power_of_two(lock_free_int num)
 {
-    return (1 == __BUILTIN_POPCOUNT(num));
+	return (1 == __BUILTIN_POPCOUNT(num));
 }
 
 static inline lock_free_int get_prev_power_of_two(lock_free_int num)
 {
-    if (num == 0)
-        num = -1;
+	if (num == 0)
+		num = -1;
 
-    return ((lock_free_int)1 << ((sizeof(lock_free_int)*8) - 1 - __BUILTIN_CLZ(num)));
+	return ((lock_free_int)1 << ((sizeof(lock_free_int)*8) - 1 - __BUILTIN_CLZ(num)));
 }
 
 
 static inline lock_free_int get_next_power_of_two(lock_free_int num)
 {
-    if (num == 1 || num > (-(lock_free_int)1)/2 + 1)
-        return 1;
+	if (num == 1 || num > (-(lock_free_int)1)/2 + 1)
+		return 1;
 
-    return ((lock_free_int)1 << ((sizeof(lock_free_int)*8) - __BUILTIN_CLZ(num-1)));
+	return ((lock_free_int)1 << ((sizeof(lock_free_int)*8) - __BUILTIN_CLZ(num-1)));
 }
 
 /*

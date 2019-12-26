@@ -326,8 +326,8 @@ void shm_init(void)
 		do {
 			old_bmp = null_blk_mgr->mgmt_bmp;
 			new_bmp = old_bmp | set_mask;
-		
-		}while (!atomic_compare_exchange_weak_explicit(&null_blk_mgr->mgmt_bmp, &old_bmp, new_bmp, 
+
+		}while (!atomic_compare_exchange_weak_explicit(&null_blk_mgr->mgmt_bmp, &old_bmp, new_bmp,
 		    memory_order_relaxed, memory_order_relaxed));
 
 		atomic_store(&null_blk_mgr->mem_used, MAX_ALLOCATABLE_SIZE);
@@ -482,9 +482,9 @@ void shm_free(shm_offt shm_ptr)
 
 		/* did you know == has higher precedence than &, well I didn't */
 		assert((~old_bmp & set_mask) == 0);
-		
+
 		new_bmp = old_bmp & ~set_mask;
-	}while (!atomic_compare_exchange_weak_explicit(&blk_mgr->mgmt_bmp, &old_bmp, new_bmp, 
+	}while (!atomic_compare_exchange_weak_explicit(&blk_mgr->mgmt_bmp, &old_bmp, new_bmp,
 	    memory_order_relaxed, memory_order_relaxed));
 
 	atomic_fetch_sub(&blk_mgr->mem_used, bmp_data.mem_level);
@@ -680,7 +680,7 @@ static int occupy_mem_in_bitmap(struct shm_block_mgmt *blk_mgr, size_t mem)
 
 		do {
 			old_bmp = blk_mgr->mgmt_bmp;
-		
+
 			if (old_bmp & set_mask){
 				cas_res = false;
 				mask = unset_bit(mask, first_set_bit);
@@ -689,26 +689,26 @@ static int occupy_mem_in_bitmap(struct shm_block_mgmt *blk_mgr, size_t mem)
 			}
 
 			new_bmp = old_bmp | set_mask;
-		
-		}while (!atomic_compare_exchange_weak_explicit(&blk_mgr->mgmt_bmp, &old_bmp, new_bmp, 
+
+		}while (!atomic_compare_exchange_weak_explicit(&blk_mgr->mgmt_bmp, &old_bmp, new_bmp,
 		    memory_order_relaxed, memory_order_relaxed));
-	
+
 	}while (!cas_res);
-	
+
 	rel_first_set_bit = get_rel_bit_pos(first_set_bit);
 
 	return (rel_first_set_bit);
 }
 
 static shm_bitmap get_set_bitmap_for_bit(int pos)
-{   
-    shm_bitmap bmp = 0; 
+{
+	shm_bitmap bmp = 0;
 	size_t mem;
 
 	/* current memory level of the bit */
 	mem = MAX_ALLOCATABLE_SIZE/get_prev_power_of_two(pos);
 
-    bmp = set_bit(bmp, pos);
+	bmp = set_bit(bmp, pos);
 
 	for (int num_children = 2 ; mem > MIN_ALLOCATABLE_SIZE ; num_children <<= 1, mem >>= 1) {
 		bmp = set_children_bits(bmp, pos, num_children);

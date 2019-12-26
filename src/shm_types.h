@@ -12,7 +12,7 @@
 
 #	define SHM_USE_LONG (1)
 typedef unsigned long shm_bitmap;
-typedef unsigned long lock_free_int; 
+typedef unsigned long lock_free_int;
 
 #elif ATOMIC_INT_LOCK_FREE == 2
 
