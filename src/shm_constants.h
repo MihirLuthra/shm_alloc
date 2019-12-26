@@ -54,9 +54,14 @@ size_t get_shm_mapping_size();
 
 #define DIFF_NEXT_PAGE_BOUNDARY(offset) (getpagesize() - ((offset) % getpagesize() ? : getpagesize()))
 
-
+/*
+ * This branch uses a single shm_bitmap variable to implement
+ * buddy system.  (MAX_ALLOC_POW2 - MIN_ALLOC_POW2 <= 5) should hold true
+ * if bitmap is of 64 bits.
+ * If bitmap is of 32 bits, (MAX_ALLOC_POW2 - MIN_ALLOC_POW2 <= 4)
+ */
 #if !defined(MAX_ALLOC_POW2)
-#	define MAX_ALLOC_POW2 (12) /* 1UL << 12 = 4096   */
+#	define MAX_ALLOC_POW2 (10) /* 1UL << 10 = 1024   */
 #endif
 
 #if !defined(MIN_ALLOC_POW2)
@@ -72,14 +77,6 @@ size_t get_shm_mapping_size();
 #if !defined(MAX_ALLOCATABLE_SHM_SIZE)
 #	define MAX_ALLOCATABLE_SHM_SIZE (size_t)(1UL << (8+10+10))
 #endif /* !defined(SHM_CUSTOM_ALLOCATABLE_SIZE) */
-
-
-/*
- * BITS are the number of bits present in
- * type `shm_bitmap`. e.g., If `shm_bitmap` is a typedef of uint16_t,
- * then BITS should be 16.
- */
-#define BITS (sizeof(shm_bitmap)*8)
 
 /*
  * The environment variable that is supposed to contain
@@ -99,8 +96,6 @@ size_t get_shm_mapping_size();
 #define MIN_ALLOCATABLE_SIZE (size_t)(1UL << MIN_ALLOC_POW2)
 
 #define BITMAP_SIZE  (int)((MAX_ALLOCATABLE_SIZE/MIN_ALLOCATABLE_SIZE) * 2)
-#define BMP_ARR_SIZE (int)((BITMAP_SIZE/BITS) + (BITMAP_SIZE % BITS > 0 ? 1 : 0))
-
 
 #define SHM_MGMT_SIZE ((MAX_ALLOCATABLE_SHM_SIZE/MAX_ALLOCATABLE_SIZE) * (sizeof(struct shm_block_mgmt)))
 

@@ -12,18 +12,19 @@
 
 #	define SHM_USE_LONG (1)
 typedef unsigned long shm_bitmap;
+typedef unsigned long lock_free_int; 
 
 #elif ATOMIC_INT_LOCK_FREE == 2
 
 #	define SHM_USE_INT (1)
 typedef unsigned int shm_bitmap;
+typedef unsigned int lock_free_int;
 
 #else /* ATOMIC_INT_LOCK_FREE == 2 */
 
 #	error "ATOMIC_LONG_LOCK_FREE and ATOMIC_INT_LOCK_FREE are both not 2, can't proceed"
 
 #endif
-
 
 struct file_data {
 	int          fd;
@@ -46,7 +47,7 @@ struct shm_data_table {
 };
 
 struct shm_block_mgmt {
-	_Atomic(shm_bitmap) mgmt_bmp[BMP_ARR_SIZE];
+	_Atomic(shm_bitmap) mgmt_bmp;
 	_Atomic(size_t)     mem_used;
 	_Atomic(uint8_t)    ffs_posn;
 };

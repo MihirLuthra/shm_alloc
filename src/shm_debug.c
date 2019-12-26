@@ -4,7 +4,6 @@
 #include "shm_constants.h"
 #include "shm_types.h"
 #include "shm_debug.h"
-#include "shm_util_funcs.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -53,13 +52,13 @@ void print_mem_offt_data(struct mem_offt_mgr mem_offt_data, FILE *outfile)
 	fprintf(outfile, "mem : %zu\n", mem_offt_data.mem);
 }
 
-void print_buddy_bitmap(shm_bitmap bmp[BMP_ARR_SIZE], FILE *outfile)
+void print_buddy_bitmap(shm_bitmap bmp, FILE *outfile)
 {
 	size_t mem = MAX_ALLOCATABLE_SIZE;
 
-	for (int i = 1 ; i < BITMAP_SIZE  ; ++i)
+	for (int i = 1 ; i < BITS  ; ++i)
 	{
-		fprintf(outfile, "%llu", (bmp[i/BITS] >> (BITS - (i % BITS) - 1) & (shm_bitmap)1));
+		fprintf(outfile, "%lu", (bmp >> (BITS - (i % BITS) - 1) & (shm_bitmap)1));
 
 		if (__builtin_popcount(i+1) == 1) {
 			fprintf(outfile, " --> %zu \n", (mem));

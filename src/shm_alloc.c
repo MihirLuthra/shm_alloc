@@ -6,11 +6,11 @@
 #include <pthread.h>
 
 #include "shm_alloc.h"
+#include "shm_bit_fiddler.h"
 #include "shm_constants.h"
 #include "shm_debug.h"
 #include "shm_err.h"
 #include "shm_types.h"
-#include "shm_util_funcs.h"
 
 #include <stdarg.h>
 #include <stdatomic.h>
@@ -21,7 +21,6 @@
 #include <unistd.h>
 
 uint8_t *user_shm_base;
-
 static _Atomic(struct shm_manager *) manager = NULL;
 
 
@@ -121,6 +120,18 @@ static bool update_start_blk_mgr(struct shm_block_mgmt *);
 static int occupy_mem_in_bitmap(struct shm_block_mgmt *, size_t);
 
 /*
+ * Description:
+ *  This sets all children of the bit posn param1.
+ *
+ * param1:
+ *  The bit posn whose set bitmap is needed
+ *
+ * retval:
+ *  Bitmap with param1's children set
+ */
+static shm_bitmap get_set_bitmap_for_bit(int);
+
+/*
  * retval:
  *  A `struct mem_offt_mgr` type is returned with all elements filled
  *  in accordance with param1.
@@ -185,42 +196,6 @@ static struct blk_hdr get_blk_hdr(shm_offt);
 static void set_blk_hdr(shm_offt, struct blk_hdr);
 
 /*
- * retval:
- *  Returns `true` of parent bits of param2 are set
- *  else returns `false`.
- *
- * param1:
- *  The buddy bitmap to be checked.
- *
- * param2:
- *  Relative bit posn of the bit whose parents are to be checked.
- *
- * param3:
- *  Memory level of the bit.
- *
- * param4:
- *  Address of a `size_t` type which gets filled with the value of
- *  parent's memory level IF parent is set.
- */
-static bool check_if_parents_are_set(shm_bitmap [], int, size_t, size_t *);
-
-/*
- * retval:
- *  Returns `true` of child bits of param2 are set
- *  else returns `false`.
- *
- * param1:
- *  The buddy bitmap to be checked.
- *
- * param2:
- *  Relative bit posn of the bit whose children are to be checked.
- *
- * param3:
- *  Memory level of the bit.
- */
-static bool check_if_children_are_set(shm_bitmap [], int, size_t);
-
-/*
  * param1:
  *  A struct shm_manager * that whose values
  *  were set by shm_init()
@@ -240,9 +215,17 @@ void shm_init(void)
 	struct shm_block_mgmt *null_blk_mgr;
 	void * shm_null_base;
 	size_t shm_null_size;
+	shm_bitmap old_bmp, new_bmp, set_mask;
 
 	if (manager != NULL) {
 		return;
+	}
+
+	if (BITMAP_SIZE > BITS) {
+		P_ERR("This shm cache doesn't support power difference more than %d",
+		    MAX_ALLOC_POW2 - MIN_ALLOC_POW2 - __builtin_ctz(BITMAP_SIZE/BITS));
+		P_ERR("Current MAX_ALLOC_POW2 - MIN_ALLOC_POW2 = %d\n", MAX_ALLOC_POW2 - MIN_ALLOC_POW2);
+		abort();
 	}
 
 	assert(get_shm_min_allocatable_size() < get_shm_max_allocatable_size());
@@ -334,12 +317,19 @@ void shm_init(void)
 	 * used
 	 */
 	num_mgrs = shm_null_size/MAX_ALLOCATABLE_SIZE + (shm_null_size % MAX_ALLOCATABLE_SIZE > 0 ? 1 : 0);
+	set_mask = get_set_bitmap_for_bit(get_start_bit_pos_for_mem_level(MAX_ALLOCATABLE_SIZE));
 
 	for (int mgr = 0 ; mgr < num_mgrs ; ++mgr) {
 
 		null_blk_mgr = ACCESS_SHM_MGMT_BY_MGMT_BLK_NO_BY_MANAGER(new_manager, mgr);
 
-		(void)set_bit_race_free(null_blk_mgr->mgmt_bmp, get_start_bit_pos_for_mem_level(MAX_ALLOCATABLE_SIZE));
+		do {
+			old_bmp = null_blk_mgr->mgmt_bmp;
+			new_bmp = old_bmp | set_mask;
+		
+		}while (!atomic_compare_exchange_weak_explicit(&null_blk_mgr->mgmt_bmp, &old_bmp, new_bmp, 
+		    memory_order_relaxed, memory_order_relaxed));
+
 		atomic_store(&null_blk_mgr->mem_used, MAX_ALLOCATABLE_SIZE);
 	}
 
@@ -477,7 +467,7 @@ void shm_free(shm_offt shm_ptr)
 	struct bmp_data_mgr bmp_data;
 	struct shm_block_mgmt *blk_mgr;
 	struct mem_offt_mgr mem_offt_data;
-	bool did_unset;
+	shm_bitmap set_mask, old_bmp, new_bmp;
 
 	mem_offt_data = convert_offset_to_mem_offt_mgr(shm_ptr);
 
@@ -485,8 +475,17 @@ void shm_free(shm_offt shm_ptr)
 
 	blk_mgr = ACCESS_SHM_MGMT_BY_MGMT_BLK_NO(bmp_data.bitmap_no);
 
-	did_unset = unset_bit_race_free(blk_mgr->mgmt_bmp, bmp_data.abs_bit_pos);
-	assert(did_unset);
+	set_mask = get_set_bitmap_for_bit(bmp_data.abs_bit_pos);
+
+	do {
+		old_bmp = blk_mgr->mgmt_bmp;
+
+		/* did you know == has higher precedence than &, well I didn't */
+		assert((~old_bmp & set_mask) == 0);
+		
+		new_bmp = old_bmp & ~set_mask;
+	}while (!atomic_compare_exchange_weak_explicit(&blk_mgr->mgmt_bmp, &old_bmp, new_bmp, 
+	    memory_order_relaxed, memory_order_relaxed));
 
 	atomic_fetch_sub(&blk_mgr->mem_used, bmp_data.mem_level);
 }
@@ -641,143 +640,78 @@ static bool update_start_blk_mgr(struct shm_block_mgmt * new_blk_mgr)
 			return (false);
 		}
 
-	}while(!atomic_compare_exchange_weak(&data_table->start_blk_mgr_offt, &old, new));
+	}while(!atomic_compare_exchange_weak_explicit(&data_table->start_blk_mgr_offt, &old, new,
+	    memory_order_relaxed, memory_order_relaxed));
 
 	return (true);
 }
 
-static bool check_if_children_are_set(shm_bitmap bmp[], int relative_bit_pos, size_t mem_level)
-{
-	assert(relative_bit_pos >= 0 && relative_bit_pos < get_bit_cnt_for_mem_level(mem_level));
-
-	int children_cnt, cur_lv_rel_bit_pos, abs_bit_pos;
-
-	children_cnt = 2;
-
-	while ((mem_level / children_cnt) >= MIN_ALLOCATABLE_SIZE) {
-
-		cur_lv_rel_bit_pos = normalize_bit_pos_for_level(relative_bit_pos, mem_level, mem_level / children_cnt);
-
-		abs_bit_pos = get_abs_bit_pos(cur_lv_rel_bit_pos, mem_level / children_cnt);
-
-		if (is_bit_range_zero(bmp, abs_bit_pos, abs_bit_pos + children_cnt) == false)
-			return true;
-
-
-		children_cnt *= 2;
-	}
-
-	return false;
-}
-
-static bool check_if_parents_are_set(shm_bitmap bmp[], int relative_bit_pos, size_t mem_level, 
-    size_t *parent_mem_level)
-{
-	assert(relative_bit_pos >= 0 && relative_bit_pos < get_bit_cnt_for_mem_level(mem_level));
-
-	int cur_lv_rel_bit_pos, abs_bit_pos;
-
-	int mul = MAX_ALLOCATABLE_SIZE/mem_level;
-
-	while ((mem_level * mul) > mem_level) {
-
-		cur_lv_rel_bit_pos = normalize_bit_pos_for_level(relative_bit_pos, mem_level, mem_level * mul);
-
-		abs_bit_pos = get_abs_bit_pos(cur_lv_rel_bit_pos, mem_level * mul);
-
-		if (is_bit_set(bmp, abs_bit_pos) == true) {
-			*parent_mem_level = mem_level * mul;
-			return true;
-		}
-
-		mul /= 2;
-	}
-
-	return (false);
-}
 
 static int occupy_mem_in_bitmap(struct shm_block_mgmt *blk_mgr, size_t mem)
 {
-	MEM_RANGE_ASSERT(mem);
+	shm_bitmap mask, set_mask, old_bmp, new_bmp;
+	int start_pos, cnt;
+	int first_set_bit, rel_first_set_bit;
+	bool cas_res;
 
-	int first_set_bit, rel_pos_first_set_bit, rel_bit_pos;
-	bool did_set_bit, are_children_set, are_parents_set, did_unset;
-	size_t parent_mem_lv;
+	start_pos = cnt = MAX_ALLOCATABLE_SIZE/mem;
 
-	shm_bitmap mask[BMP_ARR_SIZE];
-
-	get_settable_bits_mask((shm_bitmap *)blk_mgr->mgmt_bmp, mem, mask);
-
-	rel_bit_pos = -1;
-	first_set_bit = -1;
+	/* mask contains the free bits at memory level mem */
+	mask = set_bit_range(0, start_pos, cnt) & ~(blk_mgr->mgmt_bmp);
 
 	do {
 
-#if SHM_LEFT_FFS
-		first_set_bit = shm_bitmap_ffs_from_left(mask) -1;
-#elif SHM_RIGHT_FFS
-		first_set_bit = BITMAP_SIZE - (shm_bitmap_ffs(mask) ? : BITMAP_SIZE + 1);
-#else
-		/*
-		 * shm_bitmap_ffs_from_left() returns first set bit from the L.H.S
-		 * and shm_bitmap_ffs() returns first set bit from the R.H.S.
-		 *
-		 * ffs_posn is incremented everytime a process needs
-		 * first set bit.
-		 * Now some processes check from L.H.S while others on R.H.S.
-		 * This reduces clashes among processes and optimises code.
-		 */
-		if (atomic_fetch_add(&blk_mgr->ffs_posn, 1) % 2 == 0) {
-			first_set_bit = shm_bitmap_ffs_from_left(mask) -1;
+		/* to reduce clashes among processes, do ffs from both sides */
+		if (atomic_fetch_add_explicit(&blk_mgr->ffs_posn, 1, memory_order_relaxed) % 2 == 0) {
+			/* ffs from left */
+			first_set_bit = mask ? __BUILTIN_CLZ(mask) : -1;
 		} else {
-			first_set_bit = BITMAP_SIZE - (shm_bitmap_ffs(mask) ? : BITMAP_SIZE + 1);
-		}
-#endif
-
-		/* memory not available in this bitmap */
-		if (first_set_bit == -1)
-			break;
-
-		did_set_bit = set_bit_race_free(blk_mgr->mgmt_bmp, first_set_bit);
-
-		if (did_set_bit == false) {
-			unset_bit(mask, first_set_bit);
-			first_set_bit = -1;
-			continue;
+			/* ffs from right */
+			first_set_bit = BITS - (__BUILTIN_FFS(mask) ? : BITS + 1);
 		}
 
-		rel_pos_first_set_bit = get_rel_bit_pos(first_set_bit);
-
-		are_parents_set =
-		    check_if_parents_are_set((shm_bitmap *)blk_mgr->mgmt_bmp, rel_pos_first_set_bit, mem, &parent_mem_lv);
-
-		if (are_parents_set == true) {
-			int nbpos = normalize_bit_pos_for_level(rel_pos_first_set_bit, mem, parent_mem_lv);
-			nbpos = normalize_bit_pos_for_level(nbpos, parent_mem_lv, mem);
-			nbpos = get_abs_bit_pos(nbpos, mem);
-			unset_bits_in_range(mask, nbpos, nbpos + parent_mem_lv/mem);
-
-			did_unset = unset_bit_race_free(blk_mgr->mgmt_bmp, first_set_bit);
-			assert(did_unset);
-
-			continue;
+		if (first_set_bit == -1) {
+			return (first_set_bit);
 		}
 
-		are_children_set = check_if_children_are_set((shm_bitmap *)blk_mgr->mgmt_bmp, rel_pos_first_set_bit, mem);
+		set_mask = get_set_bitmap_for_bit(first_set_bit);
 
+		cas_res = true;
 
-		if (are_children_set == true) {
-			unset_bit(mask, first_set_bit);
-			did_unset = unset_bit_race_free(blk_mgr->mgmt_bmp, first_set_bit);
-			assert(did_unset);
+		do {
+			old_bmp = blk_mgr->mgmt_bmp;
+		
+			if (old_bmp & set_mask){
+				cas_res = false;
+				mask = unset_bit(mask, first_set_bit);
+				mask &= ~(blk_mgr->mgmt_bmp);
+				break;
+			}
 
-			continue;
-		}
+			new_bmp = old_bmp | set_mask;
+		
+		}while (!atomic_compare_exchange_weak_explicit(&blk_mgr->mgmt_bmp, &old_bmp, new_bmp, 
+		    memory_order_relaxed, memory_order_relaxed));
+	
+	}while (!cas_res);
+	
+	rel_first_set_bit = get_rel_bit_pos(first_set_bit);
 
-		/* reaching here means bit setting is done, memory occupied */
-		rel_bit_pos = rel_pos_first_set_bit;
+	return (rel_first_set_bit);
+}
 
-	} while (rel_bit_pos == -1);
+static shm_bitmap get_set_bitmap_for_bit(int pos)
+{   
+    shm_bitmap bmp = 0; 
+	size_t mem;
 
-	return (rel_bit_pos);
+	/* current memory level of the bit */
+	mem = MAX_ALLOCATABLE_SIZE/get_prev_power_of_two(pos);
+
+    bmp = set_bit(bmp, pos);
+
+	for (int num_children = 2 ; mem > MIN_ALLOCATABLE_SIZE ; num_children <<= 1, mem >>= 1) {
+		bmp = set_children_bits(bmp, pos, num_children);
+	}
+	return (bmp);
 }

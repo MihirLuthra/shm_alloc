@@ -35,7 +35,7 @@ void open_pid_file();
 #define PTPRINTF(format, ...) \
 	printf("[%d,%ld]:" format, getpid(), (long)pthread_self(), ##__VA_ARGS__)
 
-void print_buddy_bitmap(shm_bitmap [], FILE *) ;
+void print_buddy_bitmap(shm_bitmap, FILE *) ;
 void print_all_bits(shm_bitmap, FILE *);
 
 void print_bmp_data(struct bmp_data_mgr, FILE *);
