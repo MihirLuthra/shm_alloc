@@ -1,14 +1,16 @@
 # shm_alloc
 
+README NOT READY, NEEDS TO BE UPDATED
+
 <h1>Shared memory caching library</h1>
 
 <ul>
-    <li><a href="https://github.com/MihirLuthra/shm_alloc#what-is-it">What is it?</a></li>
-    <li><a href="https://github.com/MihirLuthra/shm_alloc#when-to-use">When to use?</a></li>
-     <li><a href="https://github.com/MihirLuthra/shm_alloc#tested-on">Tested on</a></li>
-    <li><a href="https://github.com/MihirLuthra/shm_alloc#use-case">Use case</a></li>
-    <li><a href="https://github.com/MihirLuthra/shm_alloc#how-to-use">How to use?</a></li>
-    <li><a href="https://github.com/MihirLuthra/shm_alloc#source-code-explanation">Source code explanation</a></li>
+    <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/fast_small_cache#what-is-it">What is it?</a></li>
+    <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/fast_small_cache#when-to-use">When to use?</a></li>
+     <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/fast_small_cache#tested-on">Tested on</a></li>
+    <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/fast_small_cache#use-case">Use case</a></li>
+    <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/fast_small_cache#how-to-use">How to use?</a></li>
+    <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/fast_small_cache#source-code-explanation">Source code explanation</a></li>
 </ul>
 
 # What is it?
@@ -48,19 +50,16 @@ shm_free()
     <li>
         It is meant to be used for caching. It can't allocate memory beyond its max limit. No matter how big is the shared 
         memory itself, it is still divided into blocks. The block size is the max allocatable size. Like, if the max 
-        allocatable size is set to 4096, any requests for memory greater than that from <code>shm_malloc()</code> will return 
+        allocatable size is set to 1024, any requests for memory greater than that from <code>shm_malloc()</code> will return 
         null(even if the shared memory itself was 256 MB). The code needs to be compiled with max and min limits. Defaults for 
-        min and max are 32 bytes(2^5) and 4096(2^12) bytes respectively. In order to change these, code needs to be recompiled 
+        min and max are 32 bytes(2^5) and 1024(2^10) bytes respectively. In order to change these, code needs to be recompiled 
         with new limits which need to be power of 2.(described in <a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/how_to_use.md#changing-default-settings">changing defaults section</a>).
-        The code will be efficient if the the difference in the powers is less. Like currently 12(2^12 = 4096) - 5(2^5 = 32) = 
-        7.
+        This branch strictly needs a power difference of less than or equal to 5 if 64 bit machine and 4 if 32 bit machine.
+		Like 10 - 5 = 5 (as 2^10 = 1024 and 2^5 = 32). While testing on macOS, <code>shm_malloc</code> takes time really close to <code>malloc(2)</code>.
     </li>
     <li> 
         The block size (i.e. max allocatable size) need not be small. Max allocatable size and min allocatable size always 
-        need to be powers of 2. The difference in these powers of 2 is what needs to be small. For example, Even if max 
-        allocatable size is 1048576 (2^20) and min allocatable size is 32768 (2^15), the code should still be efficient as 
-        20-15 = 5. But in this scenario, if memory less than 32768 is requested from <code>shm_malloc()</code>, it would still
-        allocate 32768 bytes.
+        need to be powers of 2 and difference needs to be <= 5. Code is efficient even on larger values.
     </li>
 </ol>
 
@@ -76,7 +75,7 @@ shm_free()
 <ol>
     <li>
         It is meant to be used alongside a <a href="https://en.wikipedia.org/wiki/Ctrie">ctrie</a> data structure into which 
-        multiple processes may insert path names. Memory requests are not more than 4096 in our case and even if they are, 
+        multiple processes may insert path names. Memory requests are generally not more than 1024(as they are paths) in our case and even if they are, 
         it's ok to ignore such requests as its just for caching.
     </li>
     <li>
@@ -93,9 +92,9 @@ shm_free()
 # How to use?
 
 Find the instructions to use the library in 
-<a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/how_to_use.md">how_to_use.md<a>
+<a href="https://github.com/MihirLuthra/shm_alloc/blob/fast_small_cache/docs/how_to_use.md">how_to_use.md<a>
 
 # Source code explanation
 
 Find the source code explanation in 
-<a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/source_code_explanation.md">source_code_explanation.md</a>.
+<a href="https://github.com/MihirLuthra/shm_alloc/blob/fast_small_cache/docs/source_code_explanation.md">source_code_explanation.md</a>.
