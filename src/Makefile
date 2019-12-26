@@ -10,7 +10,7 @@ DYLIB_EXT         := so
 DYNAMIC_LIB_FLAGS := -fPIC -shared
 endif
 
-CFLAGS := -O3 -Wall -Wextra
+CFLAGS := -O3 -Wall -Wextra -DNDEBUG
 
 CFLAGS += $(USER_FLAGS)
 
