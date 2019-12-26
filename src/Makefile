@@ -10,21 +10,17 @@ DYLIB_EXT         := so
 DYNAMIC_LIB_FLAGS := -fPIC -shared
 endif
 
-CFLAGS := -O3 -Wall -Wextra -DNDEBUG
+CFLAGS := -O3 -Wall -Wextra
 
 CFLAGS += $(USER_FLAGS)
-
 
 SHM_LIB_NAME := libshm_alloc.$(DYLIB_EXT)
 
 
-$(SHM_LIB_NAME): shm_alloc.c shm_alloc.h shm_util_funcs.o shm_constants.o
-	$(CC) $(CFLAGS) $(DYNAMIC_LIB_FLAGS) -o $@ $< shm_util_funcs.o shm_constants.o
+$(SHM_LIB_NAME): shm_alloc.c shm_alloc.h shm_bit_fiddler.h shm_constants.h shm_err.h shm_types.h shm_constants.o
+	$(CC) $(CFLAGS) $(DYNAMIC_LIB_FLAGS) -o $@ $< shm_constants.o
 
-shm_util_funcs.o: shm_util_funcs.c shm_util_funcs.h shm_types.h shm_err.h
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-shm_constants.o: shm_constants.c shm_constants.h
+shm_constants.o: shm_constants.c shm_constants.h shm_user_types.h shm_types.h shm_err.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 
@@ -35,11 +31,11 @@ clean:
 
 # For debugging
 
-debug: shm_alloc.c shm_alloc.h shm_util_funcs.o shm_constants.o libshm_debug.$(DYLIB_EXT)
-	$(CC) $(CFLAGS) $(DYNAMIC_LIB_FLAGS) -o $(SHM_LIB_NAME) $< shm_util_funcs.o shm_constants.o -L. -lshm_debug
+debug: shm_alloc.c shm_alloc.h shm_bit_fiddler.h shm_types.h shm_err.h shm_constants.o libshm_debug.$(DYLIB_EXT)
+	$(CC) $(CFLAGS) $(DYNAMIC_LIB_FLAGS) -o $(SHM_LIB_NAME) $<  shm_constants.o -L. -lshm_debug
 
 # TODO: Want to LD_PRELOAD this to intercept thread creation functions
 # So kept this a dylib
-libshm_debug.$(DYLIB_EXT): shm_debug.c shm_debug.h
+libshm_debug.$(DYLIB_EXT): shm_debug.c shm_debug.h shm_constants.h shm_types.h shm_err.h
 	$(CC) $(CFLAGS) $(DYNAMIC_LIB_FLAGS) -o $@ $<
 
