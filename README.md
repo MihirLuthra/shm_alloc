@@ -1,8 +1,6 @@
 # shm_alloc
 
-README NOT READY, NEEDS TO BE UPDATED
-
-<h1>Shared memory caching library</h1>
+<h1>Shared memory allocation for cache data</h1>
 
 <ul>
     <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/fast_small_cache#what-is-it">What is it?</a></li>
@@ -17,11 +15,18 @@ README NOT READY, NEEDS TO BE UPDATED
 
 A shared memory cache allocation library that provides 3 main functions:
 
-```
-shm_malloc()
-shm_calloc()
-shm_free()
-```
+<ul>
+	<li>
+		shm_malloc()
+	</li>
+	<li>
+		shm_calloc()
+	</li>
+	<li>
+		shm_free()
+	</li>
+</ul>
+
 
 <ol>
     <li>
@@ -32,7 +37,7 @@ shm_free()
         The shared memory is just a regular file which is <code>mmap(2)</code>'d in the processes. This is done before
         <code>main()</code> is called via 
         <a href="https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html"><code>__attribute__((constructor))</code></a>.
-		Although this behaviour maybe modified as explained in <a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/how_to_use.md#changing-default-settings">changing defaults section</a>.
+		Although this behaviour maybe modified as explained in <a href="https://github.com/MihirLuthra/shm_alloc/blob/fast_small_cache/docs/how_to_use.md#changing-default-settings">changing defaults section</a>.
     </li>
     <li>
         The shared memory is divided into small blocks and allocation of each block is managed by a buddy system in form of 
@@ -45,22 +50,23 @@ shm_free()
 
 <ol>
     <li>
-        It uses C11's atomic library. Also, it uses a lot of gcc extensions, which are available in clang as well.
+        It uses C11's atomic library. Also, it uses some of gcc extensions, which are available in clang as well.
+		So if you want standard C, good luck modifying.
     </li>
-    <li>
-        It is meant to be used for caching. It can't allocate memory beyond its max limit. No matter how big is the shared 
-        memory itself, it is still divided into blocks. The block size is the max allocatable size. Like, if the max 
-        allocatable size is set to 1024, any requests for memory greater than that from <code>shm_malloc()</code> will return 
-        null(even if the shared memory itself was 256 MB). The code needs to be compiled with max and min limits. Defaults for 
-        min and max are 32 bytes(2^5) and 1024(2^10) bytes respectively. In order to change these, code needs to be recompiled 
-        with new limits which need to be power of 2.(described in <a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/how_to_use.md#changing-default-settings">changing defaults section</a>).
-        This branch strictly needs a power difference of less than or equal to 5 if 64 bit machine and 4 if 32 bit machine.
-		Like 10 - 5 = 5 (as 2^10 = 1024 and 2^5 = 32). While testing on macOS, <code>shm_malloc</code> takes time really close to <code>malloc(2)</code>.
-    </li>
-    <li> 
-        The block size (i.e. max allocatable size) need not be small. Max allocatable size and min allocatable size always 
-        need to be powers of 2 and difference needs to be <= 5. Code is efficient even on larger values.
-    </li>
+	<li>
+		If you are ok with allocating memory in a certain range. e.g., our use case would let us allocate memory
+		in range 32 bytes - 1024 bytes (which is default). Main point here is how big can the range be?
+		Max and min sizes need to be power of 2 and difference of these powers should be <= 5 if 64 bit compiler and
+		<= 4 if 32 bit compiler.<br>
+		32 = 2<sup>5</sup> and 1024 = 2<sup>10</sup>. The requirement is satisified as 10 - 5 = 5. It could have been
+		2<sup>15</sup> to 2<sup>20</sup>. (See <a href="https://github.com/MihirLuthra/shm_alloc/blob/fast_small_cache/docs/how_to_use.md#changing-default-settings">changing defaults section</a>). <br>
+	</li>
+	<li>
+		The memory allocated on request of <em>n</em> bytes will be next closest power of 2 after <em>n</em> within range.
+		e.g., If 158 bytes are requested, 256 bytes are allocated.<br>
+		If 9 bytes are requested, 32 bytes are allocated (not 16 because range is 32 to 1024).<br>
+		If more than 1024 bytes are requested, <code>SHM_NULL</code> is returned.
+	</li>
 </ol>
 
 # Tested on
