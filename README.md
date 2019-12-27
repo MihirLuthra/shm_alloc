@@ -3,12 +3,12 @@
 <h1>Shared memory caching library</h1>
 
 <ul>
-    <li><a href="https://github.com/MihirLuthra/shm_alloc#what-is-it">What is it?</a></li>
-    <li><a href="https://github.com/MihirLuthra/shm_alloc#when-to-use">When to use?</a></li>
-     <li><a href="https://github.com/MihirLuthra/shm_alloc#tested-on">Tested on</a></li>
-    <li><a href="https://github.com/MihirLuthra/shm_alloc#use-case">Use case</a></li>
-    <li><a href="https://github.com/MihirLuthra/shm_alloc#how-to-use">How to use?</a></li>
-    <li><a href="https://github.com/MihirLuthra/shm_alloc#source-code-explanation">Source code explanation</a></li>
+    <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/master#what-is-it">What is it?</a></li>
+    <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/master#when-to-use">When to use?</a></li>
+     <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/master#tested-on">Tested on</a></li>
+    <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/master#use-case">Use case</a></li>
+    <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/master#how-to-use">How to use?</a></li>
+    <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/master#source-code-explanation">Source code explanation</a></li>
 </ul>
 
 # What is it?
