@@ -2,13 +2,14 @@
 #define __SHM_BIT_FIDDLER__
 
 #include "shm_types.h"
+#include <stdatomic.h>
 #include <stdbool.h>
 
-#if SHM_USE_LONG
+#if ATOMIC_LONG_LOCK_FREE == 2
 #	define __BUILTIN_POPCOUNT(num)  __builtin_popcountl(num)
 #	define __BUILTIN_CLZ(num)       __builtin_clzl(num)
 #	define __BUILTIN_FFS(num)       __builtin_ffsl(num)
-#elif SHM_USE_INT
+#elif ATOMIC_INT_LOCK_FREE == 2
 #	define __BUILTIN_POPCOUNT(num)  __builtin_popcount(num)
 #	define __BUILTIN_CLZ(num)       __builtin_clz(num)
 #	define __BUILTIN_FFS(num)       __builtin_ffs(num)

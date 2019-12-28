@@ -10,13 +10,11 @@
 
 #if ATOMIC_LONG_LOCK_FREE == 2
 
-#	define SHM_USE_LONG (1)
 typedef unsigned long shm_bitmap;
 typedef unsigned long lock_free_int;
 
 #elif ATOMIC_INT_LOCK_FREE == 2
 
-#	define SHM_USE_INT (1)
 typedef unsigned int shm_bitmap;
 typedef unsigned int lock_free_int;
 

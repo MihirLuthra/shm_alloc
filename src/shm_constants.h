@@ -2,6 +2,7 @@
 #define __SHM_CONSTANTS_H__
 
 #include "shm_user_types.h"
+#include <stdatomic.h>
 
 /*
  * Description:
@@ -65,9 +66,10 @@ size_t get_shm_mapping_size();
 #endif
 
 #if !defined(MIN_ALLOC_POW2)
-#	if defined(SHM_USE_LONG)
+#	if ATOMIC_LONG_LOCK_FREE == 2
 #		define MIN_ALLOC_POW2 (5)  /* 1UL << 5  = 32     */
 #	else
+#		error "nope"
 #		define MIN_ALLOC_POW2 (6)  /* 1UL << 6  = 64     */
 #	endif
 #endif
