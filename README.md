@@ -5,8 +5,9 @@
 <ul>
     <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/fast_small_cache#what-is-it">What is it?</a></li>
     <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/fast_small_cache#when-to-use">When to use?</a></li>
-     <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/fast_small_cache#tested-on">Tested on</a></li>
+    <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/fast_small_cache#tested-on">Tested on</a></li>
     <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/fast_small_cache#use-case">Use case</a></li>
+	<li><a href="https://github.com/MihirLuthra/shm_alloc/tree/fast_small_cache#quick-and-short-example">Quick and short example</a></li>
     <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/fast_small_cache#how-to-use">How to use?</a></li>
     <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/fast_small_cache#source-code-explanation">Source code explanation</a></li>
 </ul>
@@ -94,6 +95,53 @@ A shared memory cache allocation library that provides 3 main functions:
         (as it is not considered asyc safe at the present time).
     </li>
 </ol>
+
+# Quick and short example
+
+<pre>
+//
+// example.c
+//
+#include "shm_alloc.h"
+#include &ltstdlib.h&gt
+#include &ltstring.h&gt
+
+#define PTR(type)             shm_offt
+#define ACCESS(offset, type)  ((type *)((uint8_t *)get_shm_user_base() + (offset)))
+
+int main()
+{
+	PTR(char) str;<br>
+	size_t string_len = 100;
+	str = shm_calloc(string_len, sizeof(char));<br>
+	if (str == SHM_NULL) {
+		fprintf(stderr, "Out of memory\n");
+		exit(EXIT_FAILURE);
+	}<br>
+	strcpy(ACCESS(str, char), "My test string!");<br>
+	printf("%s\n", ACCESS(str, char));<br>
+	shm_free(str);<br>
+	return 0;
+}
+</pre>
+
+Then,
+On mac:
+<pre>
+cd <repository_path>/shm_alloc/src && make
+export SHM_FILE="/tmp/example_shm_file"
+export DYLD_FALLBACK_LIBRARY_PATH="<repository_path>/shm_alloc/src/:$DYLD_FALLBACK_LIBRARY_PATH"
+clang -I<repository_path>/shm_alloc/src/ example.c -L<repository_path>/shm_alloc/src/ -lshm_alloc
+</pre>
+
+On linux:
+<pre>
+cd <repository_path>/shm_alloc/src && make
+export SHM_FILE="/tmp/example_shm_file"
+export LD_LIBRARY_PATH="<repository_path>/shm_alloc/src/:$DYLD_FALLBACK_LIBRARY_PATH"
+gcc -I<repository_path>/shm_alloc/src/ example.c -L<repository_path>/shm_alloc/src/ -lshm_alloc
+</pre>
+
 
 # How to use?
 
