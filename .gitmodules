@@ -1,0 +1,3 @@
+[submodule "tests/lock_free_stack"]
+	path = tests/lock_free_stack
+	url = https://github.com/MihirLuthra/lstack.git
