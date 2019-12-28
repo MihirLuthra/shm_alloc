@@ -128,18 +128,18 @@ int main()
 Then,
 On mac:
 <pre>
-cd <repository_path>/shm_alloc/src && make
+cd &ltrepository_path&gt/shm_alloc/src && make
 export SHM_FILE="/tmp/example_shm_file"
-export DYLD_FALLBACK_LIBRARY_PATH="<repository_path>/shm_alloc/src/:$DYLD_FALLBACK_LIBRARY_PATH"
-clang -I<repository_path>/shm_alloc/src/ example.c -L<repository_path>/shm_alloc/src/ -lshm_alloc
+export DYLD_FALLBACK_LIBRARY_PATH="&ltrepository_path&gt/shm_alloc/src/:$DYLD_FALLBACK_LIBRARY_PATH"
+clang -I&ltrepository_path&gt/shm_alloc/src/ example.c -L&ltrepository_path&gt/shm_alloc/src/ -lshm_alloc
 </pre>
 
 On linux:
 <pre>
-cd <repository_path>/shm_alloc/src && make
+cd &ltrepository_path&gt/shm_alloc/src && make
 export SHM_FILE="/tmp/example_shm_file"
-export LD_LIBRARY_PATH="<repository_path>/shm_alloc/src/:$DYLD_FALLBACK_LIBRARY_PATH"
-gcc -I<repository_path>/shm_alloc/src/ example.c -L<repository_path>/shm_alloc/src/ -lshm_alloc
+export LD_LIBRARY_PATH="&ltrepository_path&gt/shm_alloc/src/:$DYLD_FALLBACK_LIBRARY_PATH"
+gcc -I&ltrepository_path&gt/shm_alloc/src/ example.c -L&ltrepository_path&gt/shm_alloc/src/ -lshm_alloc
 </pre>
 
 
