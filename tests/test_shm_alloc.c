@@ -152,6 +152,11 @@ int main(int argc, char *argv[])
 	free_rand_strings(rand_strings, max_idx);
 	shm_deinit();
 
+	for (int i = 0 ; i < thread_count ; ++i)
+		free(test_results[i]);
+
+	free(test_results);
+
 	int status = 0;
 	while (wait(&status) > 0);
 
@@ -200,6 +205,8 @@ struct test_results_mgr ** spawn_threads_for_test(int thrd_cnt, void *(*tester_f
 
 	for (i = 0 ; i < thrd_cnt ; ++i)
 		pthread_join(thrds[i], NULL);
+
+	free(thrds);
 
 	return (test_results);
 }
