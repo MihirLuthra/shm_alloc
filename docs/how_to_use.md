@@ -68,6 +68,8 @@ export SHM_FILE="path/to/shm/file"
 			<li>
 				<h4>shm_deinit()</h4>
 					This is used to free the mapping and other resources held for shared memory usage.
+				    This doesn't delete the shared memory file(the file obtained from SHM_FILE env varibale).
+					Its entirely the user's responsibility to delete the file after use.
 			</li>
 			<li>
 				<h4>shm_malloc()</h4>
