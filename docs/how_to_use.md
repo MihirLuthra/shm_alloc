@@ -95,6 +95,11 @@ if (mem_offset == SHM_NULL) {
 					It has a value of 0 and at that offset of shared memory, mapping is readonly.
 			</li>
 			<li>
+				<h4>shm_offt</h4>
+					It is the return type of <code>shm_(m|c)alloc()</code>.
+					Format specifier for printing it is <code>PRIu_shm_offt</code>.
+			</li>
+			<li>
 				<h4>shm_calloc()</h4>
 					<code>shm_calloc()</code> can be used similarly like shm_malloc():
 <pre>
