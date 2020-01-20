@@ -29,5 +29,5 @@ $(SHM_DIR)/libshm_alloc.$(DYLIB_EXT)::
 	make -C $(SHM_DIR)
 
 clean:
-	rm *.dbgfl *.so *.out *.o .*.swp *.dylib shm_file
+	rm *.dbgfl *.so *.out *.o .*.swp *.dylib shm_file_*
 
