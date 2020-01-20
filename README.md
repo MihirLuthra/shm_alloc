@@ -1,14 +1,21 @@
 # shm_alloc
 
+<strong>Note</strong>: This was made before the master branch. This was functional and allows blocks size to be of any range 
+unlike master branch which has a restriction of difference being less than 5. Due to single bitmap usage of master branch,
+it was comparitively faster and easier to deal with.
+
+The fixes or updates made to the master branch are not
+reflected in this branch.
+
 <h1>Shared memory caching library</h1>
 
 <ul>
-    <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/master#what-is-it">What is it?</a></li>
-    <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/master#when-to-use">When to use?</a></li>
-     <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/master#tested-on">Tested on</a></li>
-    <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/master#use-case">Use case</a></li>
-    <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/master#how-to-use">How to use?</a></li>
-    <li><a href="https://github.com/MihirLuthra/shm_alloc/tree/master#source-code-explanation">Source code explanation</a></li>
+    <li><a href="#what-is-it">What is it?</a></li>
+    <li><a href="#when-to-use">When to use?</a></li>
+     <li><a href="#tested-on">Tested on</a></li>
+    <li><a href="#use-case">Use case</a></li>
+    <li><a href="#how-to-use">How to use?</a></li>
+    <li><a href="#source-code-explanation">Source code explanation</a></li>
 </ul>
 
 # What is it?
@@ -30,7 +37,7 @@ shm_free()
         The shared memory is just a regular file which is <code>mmap(2)</code>'d in the processes. This is done before
         <code>main()</code> is called via 
         <a href="https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html"><code>__attribute__((constructor))</code></a>.
-		Although this behaviour maybe modified as explained in <a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/how_to_use.md#changing-default-settings">changing defaults section</a>.
+		Although this behaviour maybe modified as explained in <a href="#changing-default-settings">changing defaults section</a>.
     </li>
     <li>
         The shared memory is divided into small blocks and allocation of each block is managed by a buddy system in form of 
@@ -93,9 +100,9 @@ shm_free()
 # How to use?
 
 Find the instructions to use the library in 
-<a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/how_to_use.md">how_to_use.md<a>
+<a href="docs/how_to_use.md">how_to_use.md<a>
 
 # Source code explanation
 
 Find the source code explanation in 
-<a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/source_code_explanation.md">source_code_explanation.md</a>.
+<a href="docs/source_code_explanation.md">source_code_explanation.md</a>.
