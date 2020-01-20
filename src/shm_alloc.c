@@ -366,6 +366,7 @@ static void shm_deinit_by_manager(struct shm_manager *this_manager)
 void shm_deinit()
 {
 	shm_deinit_by_manager(manager);
+	manager = NULL;
 }
 
 size_t get_shm_max_allocatable_size()
