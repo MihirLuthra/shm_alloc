@@ -35,10 +35,8 @@ A shared memory cache allocation library that provides 3 main functions:
         allocate space in shared memory and return offset from the start of shared memory instead.
     </li>
     <li>
-        The shared memory is just a regular file which is <code>mmap(2)</code>'d in the processes. This is done before
-        <code>main()</code> is called via 
-        <a href="https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html"><code>__attribute__((constructor))</code></a>.
-		Although this behaviour maybe modified as explained in <a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/how_to_use.md#changing-default-settings">changing defaults section</a>.
+        The shared memory is just a regular file which is <code>mmap(2)</code>'d into the processes' address space. This is done in <code>shm_init()</code>. It's recommended to call <code>shm_init()</code> in
+        <a href="https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html"><code>__attribute__((constructor))</code></a> if it doesn't disturb your code to avoid unecessary clashes among threads.
     </li>
     <li>
         The shared memory is divided into small blocks and allocation of each block is managed by a buddy system in form of 
@@ -91,7 +89,7 @@ A shared memory cache allocation library that provides 3 main functions:
         interrupted by a signal or maybe even called inside a signal handler or any such similar situation may cause a 
         deadlock. As it may even be called inside a signal handler, its essential to use 
         <a href="http://man7.org/linux/man-pages/man7/signal-safety.7.html">asyc-signal-safe functions</a>. That's one more
-        reason why shared memory initialisation that requires <code>mmap(2)</code> is done with <a href="https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html"><code>__attribute__((constructor))</code></a>
+        reason why shared memory initialisation that requires <code>mmap(2)</code> is done with <a href="https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html"><code>__attribute__((constructor))</code></a> in our use case
         (as it is not considered asyc safe at the present time).
     </li>
 </ol>

@@ -61,9 +61,9 @@ export SHM_FILE="path/to/shm/file"
 			</li>
 			<li>
 				<h4>shm_init()</h4>
-					This is marked with <code>__attribute__((constructor))</code>, so this is called automatically
-					before main. It can be called within multiple processes/threads if needed. If you don't want it to be
-					called as a constructor, compile code with <code>-D SHM_DO_NOT_USE_CONSTRUCTOR=1</code>.
+					To setup all shared memory mappings. It can handle being called in multiple threads/processes.
+					It maybe a good idea to call it in a function marked as <code>__attribute__((constructor))</code> to
+					avoid unnecessary clashes among threads.
 			</li>
 			<li>
 				<h4>shm_deinit()</h4>
@@ -168,13 +168,6 @@ make USER_FLAGS='-D MIN_ALLOC_POW2=&lt;new_pow&gt;'
 make USER_FLAGS='-D MAX_ALLOCATABLE_SHM_SIZE=&lt;new_size&gt;'
 </pre>
 				For example, setting new size to 262144 means 262144 bytes are allocatable.
-			</li>
-			<li>
-				If you do not want <code>shm_init()</code> to have constructor attribute,
-				compile the code as:
-<pre>
-make USER_FLAGS='-D SHM_DO_NOT_USE_CONSTRUCTOR=1'
-</pre>
 			</li>
 		</ol>
 	</li>

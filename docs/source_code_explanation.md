@@ -4,7 +4,7 @@ The basic working of code goes as follows:
 	<li>
 		File at path given by env variable <code>SHM_FILE</code> is <a href="http://man7.org/linux/man-pages/man2/mmap.2.html"><code>mmap(2)</code></a>'d into process' address space.
 		If the file doesn't exist it is created. As the file is given its size by <a href="https://linux.die.net/man/2/ftruncate"><code>ftruncate(2)</code></a>,
-		it is initialised with all 0. All this is done before <code>main()</code> in by the help of <code>__attribute__((constructor))</code>.
+		it is initialised with all 0.
 	</li>
 	<li>
 		When <code>shm_malloc()</code> is asked for memory, it is rounded up to the next power of 2. Then management blocks are 
