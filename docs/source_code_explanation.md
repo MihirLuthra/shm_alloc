@@ -29,22 +29,22 @@ To start with, consider a file. The file's size is obtained by a <code>get_shm_m
 
 <ul>
 	<li>
-		<a href="https://github.com/MihirLuthra/shm_alloc/blob/fast_small_cache/docs/source_code_explanation.md#shm-allocatable-region">
+		<a href="#shm-allocatable-region">
 			Shm Allocatable Region
 		</a>
 	</li>
 	<li>
-		<a href="https://github.com/MihirLuthra/shm_alloc/blob/fast_small_cache/docs/source_code_explanation.md#shm-management-region">
+		<a href="#shm-management-region">
 			Shm Management Region
 		</a>
 	</li>
 	<li>
-		<a href="https://github.com/MihirLuthra/shm_alloc/blob/fast_small_cache/docs/source_code_explanation.md#shm-null">
+		<a href="#shm-null">
 			Shm Null
 		</a>
 	</li>
 	<li>
-		<a href="https://github.com/MihirLuthra/shm_alloc/blob/fast_small_cache/docs/source_code_explanation.md#shm-data-table">
+		<a href="#shm-data-table">
 			Shm Data Table
 		</a>
 	</li>
