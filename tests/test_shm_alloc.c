@@ -73,7 +73,6 @@ struct inserted_data_mgr {
 };
 
 struct test_results_mgr {
-	size_t mem_used;
 	long tid;
 	bool status;
 };
@@ -214,6 +213,10 @@ struct test_results_mgr ** spawn_threads_for_test(int thrd_cnt, void *(*tester_f
 
 void *tester_func(void *arg)
 {
+
+	/* to test if shm_init() is thread safe, we call it here */
+	shm_init();
+
 	struct test_results_mgr * test_result = arg;
 
 	struct inserted_data_mgr *data;
