@@ -206,7 +206,15 @@ static void set_blk_hdr(shm_offt, struct blk_hdr);
  */
 static void shm_deinit_by_manager(struct shm_manager *);
 
-
+/*
+ * This is the function which does the setting up
+ * of shared mappings.
+ *
+ * It would first create/open a file that is to be used as
+ * the shared memory, ftruncate(2) it to desired size(which also fills the file with zeros)
+ * and mmap(2) the file into the current process.
+ * This function can handle being called within multiple processes/threads.
+ */
 void shm_init(void)
 {
 	int retval, num_mgrs;
