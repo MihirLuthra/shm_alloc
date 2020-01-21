@@ -20,9 +20,9 @@ static _Atomic(int) pagesize = -1;
 
 #ifndef MIN_ALLOC_POW2
 #	if ATOMIC_LONG_LOCK_FREE == 2
-#		define MIN_ALLOC_POW2 (5)  /* 1UL << 5  = 32     */
+#		define MIN_ALLOC_POW2 (5)  /* 1UL << 5  = 32 */
 #	else
-#		define MIN_ALLOC_POW2 (6)  /* 1UL << 6  = 64     */
+#		define MIN_ALLOC_POW2 (6)  /* 1UL << 6  = 64 */
 #	endif
 #endif
 
@@ -70,17 +70,17 @@ static _Atomic(int) pagesize = -1;
  */
 static inline int shm_getpagesize()
 {
-    static _Atomic(int) pagesize = -1;
+	static _Atomic(int) pagesize = -1;
 
-    if (atomic_load(&pagesize) != -1) {
-        return (pagesize);
-    }
+	if (atomic_load(&pagesize) != -1) {
+		return (pagesize);
+	}
 
-    int old_val = -1;
+	int old_val = -1;
 
-    atomic_compare_exchange_strong(&pagesize, &old_val, sysconf(_SC_PAGESIZE));
+	atomic_compare_exchange_strong(&pagesize, &old_val, sysconf(_SC_PAGESIZE));
 
-    return (atomic_load(&pagesize));
+	return (atomic_load(&pagesize));
 }
 
 static inline shm_offt diff_next_page_boundary(shm_offt offset)
