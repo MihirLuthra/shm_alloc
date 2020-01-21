@@ -389,11 +389,18 @@ size_t get_shm_min_allocatable_size()
 
 void * get_shm_user_base(void)
 {
+	static void * base = NULL;
+
 	if (manager == NULL) {
 		P_ERR("manager == NULL");
 		return (NULL);
 	}
-	return (ACCESS_SHM_FOR_USER(0));
+
+	if (base == NULL) {
+		base = ACCESS_SHM_FOR_USER(0);
+	}
+
+	return (base);
 }
 
 shm_offt shm_malloc(size_t size)
