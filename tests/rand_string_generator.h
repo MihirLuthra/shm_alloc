@@ -1,4 +1,4 @@
-#if !defined(__RAND_STRING_GENERATOR_H__)
+#ifndef __RAND_STRING_GENERATOR_H__
 #define __RAND_STRING_GENERATOR_H__
 
 /*
@@ -18,7 +18,7 @@
  * param4:
  *  Upper limit of possible characters
  */
-char * generate_rand_str(unsigned long long, unsigned long long, char, char);
+char * generate_rand_str(unsigned long, unsigned long, char, char);
 
 
 /*
@@ -43,7 +43,7 @@ char * generate_rand_str(unsigned long long, unsigned long long, char, char);
  *  Upper limit of possible characters
  *
  */
-char ** generate_rand_arr_of_strs(unsigned long long, unsigned long long, unsigned long long, char, char);
+char ** generate_rand_arr_of_strs(unsigned long, unsigned long, unsigned long, char, char);
 
 /*
  * Description:
@@ -64,6 +64,6 @@ void free_rand_str(char *);
  * param2:
  *  Number of strings
  */
-void free_rand_strings(char **, unsigned long long);
+void free_rand_strings(char **, unsigned long);
 
 #endif /* __RAND_STRING_GENERATOR_H__ */

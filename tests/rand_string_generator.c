@@ -2,11 +2,11 @@
 #include "rand_string_generator.h"
 #include <stdlib.h>
 
-char * generate_rand_str(unsigned long long min_len, unsigned long long max_len, char lower, char upper)
+char * generate_rand_str(unsigned long min_len, unsigned long max_len, char lower, char upper)
 {
 	char *str;
 	size_t str_len;
-	unsigned long long i;
+	unsigned long i;
 
 	str_len = rand() % (max_len - min_len + 1) + min_len;
 
@@ -27,8 +27,8 @@ char * generate_rand_str(unsigned long long min_len, unsigned long long max_len,
 }
 
 
-char ** generate_rand_arr_of_strs(unsigned long long num_str, unsigned long long min_len,
-    unsigned long long max_len, char lower, char upper)
+char ** generate_rand_arr_of_strs(unsigned long num_str, unsigned long min_len,
+    unsigned long max_len, char lower, char upper)
 {
 	char **str_array;
 	
@@ -39,7 +39,7 @@ char ** generate_rand_arr_of_strs(unsigned long long num_str, unsigned long long
 		return (NULL);
 	}
 
-	for (unsigned long long i = 0 ; i < num_str ; ++i) {
+	for (unsigned long i = 0 ; i < num_str ; ++i) {
 
 		str_array[i] = generate_rand_str(min_len, max_len, lower, upper);
 
@@ -68,9 +68,9 @@ void free_rand_str(char *str)
 	free(str);
 }
 
-void free_rand_strings(char **str_array, unsigned long long num_str)
+void free_rand_strings(char **str_array, unsigned long num_str)
 {
-	for (unsigned long long i = 0 ; i < num_str ; ++i) {
+	for (unsigned long i = 0 ; i < num_str ; ++i) {
 		free_rand_str(str_array[i]);
 	}
 
