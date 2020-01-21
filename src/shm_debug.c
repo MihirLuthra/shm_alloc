@@ -1,5 +1,6 @@
 #include <pthread.h>
 
+#include "shm_bit_fiddler.h"
 #include "shm_err.h"
 #include "shm_constants.h"
 #include "shm_types.h"
@@ -31,7 +32,7 @@ void open_pid_file()
 		pid_file = fopen(pid_file_name, "a+");
 
 	if (pid_file == NULL) {
-		P_ERR("fopen(2) failed for file %s", pid_file_name);
+		P_ERR_WITH_VARGS("fopen(2) failed for file %s", pid_file_name);
 		abort();
 	}
 }
@@ -60,7 +61,7 @@ void print_buddy_bitmap(shm_bitmap bmp, FILE *outfile)
 	{
 		fprintf(outfile, "%lu", (bmp >> (BITS - (i % BITS) - 1) & (shm_bitmap)1));
 
-		if (__builtin_popcount(i+1) == 1) {
+		if (is_power_of_two(i+1)) {
 			fprintf(outfile, " --> %zu \n", (mem));
 			mem /= 2;
 		}

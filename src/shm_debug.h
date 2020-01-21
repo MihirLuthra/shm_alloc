@@ -29,11 +29,19 @@ void open_pid_file();
 
 #define BTS(boolean) ((boolean) ? "true" : "false")
 
-#define PRINT_IN_PID_FILE(fmt, ...) \
-	do{ open_pid_file(); fprintf(pid_file, fmt, ##__VA_ARGS__); }while(0)
+#define PRINT_IN_PID_FILE_WITH_VARGS(fmt, ...) \
+	do{ open_pid_file(); fprintf(pid_file, fmt, __VA_ARGS__); }while(0)
 
-#define PTPRINTF(format, ...) \
-	printf("[%d,%ld]:" format, getpid(), (long)pthread_self(), ##__VA_ARGS__)
+#define PRINT_IN_PID_FILE(fmt) \
+	do{ open_pid_file(); fprintf(pid_file, fmt); }while(0)
+
+
+#define PTPRINTF_WITH_VARGS(format, ...) \
+	printf("[%d,%ld]:" format, getpid(), (long)pthread_self(), __VA_ARGS__)
+
+#define PTPRINTF(format) \
+	printf("[%d,%ld]:" format, getpid(), (long)pthread_self())
+
 
 void print_buddy_bitmap(shm_bitmap, FILE *) ;
 void print_all_bits(shm_bitmap, FILE *);
