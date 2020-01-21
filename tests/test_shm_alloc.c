@@ -3,14 +3,14 @@
 
 #include <errno.h>
 
-#if defined __has_include
+#ifdef __has_include
 #	if __has_include (<libkern/OSAtomicQueue.h>)
 #		include <libkern/OSAtomicQueue.h>
 #	define HAVE_OSATOMICQUEUE
 #	endif
 #endif
 
-#if !defined(HAVE_OSATOMICQUEUE)
+#ifndef HAVE_OSATOMICQUEUE
 #	include "lstack.h"
 #endif
 
@@ -33,9 +33,11 @@
 
 #define errfile stderr
 
-#define P_ERR(format, ...) \
-	fprintf(errfile, "FILE(%s) : FUNC(%s) : LINE(%d) : errno(%d -> %s): " format "\n", __FILE__, __func__, __LINE__, errno, strerror(errno), ##__VA_ARGS__)
+#define P_ERR_WITH_VARGS(format, ...) \
+	fprintf(errfile, "FILE(%s) : FUNC(%s) : LINE(%d) : errno(%d -> %s): " format "\n", __FILE__, __func__, __LINE__, errno, strerror(errno), __VA_ARGS__)
 
+#define P_ERR(format) \
+	fprintf(errfile, "FILE(%s) : FUNC(%s) : LINE(%d) : errno(%d -> %s): " format "\n", __FILE__, __func__, __LINE__, errno, strerror(errno))
 
 
 #if TEST_THE_TEST
@@ -57,7 +59,7 @@ char **rand_strings;
 long max_idx;
 _Atomic(long) cur_idx = 0;
 
-#if defined(HAVE_OSATOMICQUEUE)
+#ifdef HAVE_OSATOMICQUEUE
 OSFifoQueueHead queue = OS_ATOMIC_FIFO_QUEUE_INIT;
 #else
 lstack_t stack;
@@ -67,7 +69,7 @@ struct inserted_data_mgr {
 	PTR(char) in_shm;
 	int       idx;
 
-#if defined(HAVE_OSATOMICQUEUE)
+#ifdef HAVE_OSATOMICQUEUE
 	struct inserted_data_mgr * link;
 #endif
 };
@@ -122,7 +124,7 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-#if !defined(HAVE_OSATOMICQUEUE)
+#ifndef HAVE_OSATOMICQUEUE
 	if (lstack_init(&stack, max_idx) != 0) {
 		P_ERR("lstack_init() failed");
 		exit(EXIT_FAILURE);
@@ -144,7 +146,7 @@ int main(int argc, char *argv[])
 
 	display_test_results(test_results, thread_count);
 
-#if !defined(HAVE_OSATOMICQUEUE)
+#ifndef HAVE_OSATOMICQUEUE
 	lstack_free(&stack);
 #endif
 
@@ -210,7 +212,6 @@ struct test_results_mgr ** spawn_threads_for_test(int thrd_cnt, void *(*tester_f
 	return (test_results);
 }
 
-
 void *tester_func(void *arg)
 {
 
@@ -247,7 +248,7 @@ void *tester_func(void *arg)
 		data->idx    = idx;
 		data->in_shm = str;
 
-#if defined(HAVE_OSATOMICQUEUE)
+#ifdef HAVE_OSATOMICQUEUE
 		OSAtomicFifoEnqueue(&queue, data, offsetof(struct inserted_data_mgr, link));
 #else
 		if (lstack_push(&stack, data) != 0) {
@@ -258,7 +259,7 @@ void *tester_func(void *arg)
 
 		sleep(0);
 
-#if defined(HAVE_OSATOMICQUEUE)
+#ifdef HAVE_OSATOMICQUEUE
 		data = OSAtomicFifoDequeue(&queue, offsetof(struct inserted_data_mgr, link));
 #else
 		data = lstack_pop(&stack);
@@ -295,7 +296,7 @@ void *tester_func(void *arg)
 				shm_free(str);
 				free(data);
 			} else {
-#if defined(HAVE_OSATOMICQUEUE)
+#ifdef HAVE_OSATOMICQUEUE
 				OSAtomicFifoEnqueue(&queue, data, offsetof(struct inserted_data_mgr, link));
 #else
 				lstack_push(&stack, data);
@@ -305,7 +306,7 @@ void *tester_func(void *arg)
 
 	}
 
-#if defined(HAVE_OSATOMICQUEUE)
+#ifdef HAVE_OSATOMICQUEUE
 		data = OSAtomicFifoDequeue(&queue, offsetof(struct inserted_data_mgr, link));
 #else
 		data = lstack_pop(&stack);
@@ -325,7 +326,7 @@ void *tester_func(void *arg)
 			shm_free(str);
 			free(data);
 		}
-#if defined(HAVE_OSATOMICQUEUE)
+#ifdef HAVE_OSATOMICQUEUE
 		data = OSAtomicFifoDequeue(&queue, offsetof(struct inserted_data_mgr, link));
 #else
 		data = lstack_pop(&stack);
