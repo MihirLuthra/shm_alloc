@@ -182,30 +182,6 @@ static inline size_t get_allocatable_shm_size()
 #define LAST_MEMORY_REGION_OFFT get_allocatable_shm_base_offt
 #define LAST_MEMORY_REGION_SIZE get_allocatable_shm_size
 
-static inline size_t get_shm_mapping_size()
-{
-	/*
-	 * mapping comprises of 3 parts:
-	 *
-	 * (1)
-	 *     shm data table
-	 *
-	 * (2)
-	 *     management area
-	 *
-	 * (3)
-	 *     allocatable area of shm
-	 *
-	 *  (3.1) shm null
-	 *
-	 * NOTE:
-	 *  The base returned to the user starts from shm null offset
-	 */
-	size_t mapping_size = 0;
+#define SHM_MAPPING_SIZE (LAST_MEMORY_REGION_OFFT() + LAST_MEMORY_REGION_SIZE())
 
-	mapping_size += LAST_MEMORY_REGION_OFFT() + LAST_MEMORY_REGION_SIZE();
-
-	return (mapping_size);
-}
-
-#endif
+#endif /* __SHM_CONSTANTS_H__ */
