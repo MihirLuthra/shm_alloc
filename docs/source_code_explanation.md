@@ -52,7 +52,7 @@ To start with, consider a file. The file's size is obtained by a <code>get_shm_m
 
 <h2>Shm Allocatable Region</h2>
 In the file, the area that is for actual data storage is called the <em>shm allocatable region</em>. Its size is
-defined by the macro <code>MAX_ALLOCATABLE_SHM_SIZE</code>. By default it is 256 MB. This region is thought as a collection
+defined by the macro <code>MAX_ALLOCATABLE_SHM_SIZE</code>. By default it is 512 MB. This region is thought as a collection
 of blocks of size <code>MAX_ALLOCATABLE_SIZE</code>. By default it is 1024 bytes. So there are 262144 blocks in the allocatable
 region by default.
 
@@ -65,7 +65,6 @@ type <code>struct shm_block_mgmt</code> which is defined as follows:
 struct shm_block_mgmt {
     _Atomic(shm_bitmap) mgmt_bmp;
     _Atomic(size_t)     mem_used;
-    _Atomic(uint8_t)    ffs_posn;
 };
 </pre>
 
@@ -136,19 +135,12 @@ struct shm_block_mgmt {
 			<code>mem_used</code> holds the amount of memory used in block. This variable is only for optimising the code. If the 
 			<code>memory needed + mem_used > max allocatable size</code>, then we skip this block.
 	</li>
-	<li>
-		<h4>ffs_posn</h4>
-			This variable is just used for optimisation. It is incremented everytime before process is about to check
-			the first set bit in <code>occupy_mem_in_bitmap()</code>. If it is divisible by 2, first set bit from 
-			left hand side is checked else from the right hand side. This reduces clashes among processes as some look for
-			bits from L.H.S and some from R.H.S in the bitmap.
-	</li>
 </ul>
 
 <h2>Shm Null</h2>
 
-This is a part of <em>shm allocatable region</em> and is located in the start of it i.e. offset is 0. Its size is obtained by 
-<a href="https://www.freebsd.org/cgi/man.cgi?sektion=3&query=getpagesize"><code>getpagesize(3)</code></a>. When mapping
+This is a part of <em>shm allocatable region</em> and is located in the start of it i.e. offset is 0. It's a single page
+mapped with <code>PROT_READ</code>. When mapping
 the file into the process, this region is made readonly. Management blocks for shm null exists as well, as it is a part of
 allocatable region. They are changed to mark shm null blocks as allocated while initialising shared memory.
 
