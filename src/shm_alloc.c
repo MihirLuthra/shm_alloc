@@ -503,7 +503,7 @@ void ptr_free(void *ptr)
 	if (ptr == NULL) {
 		offt_in_shm = SHM_NULL;
 	} else {
-		offt_in_shm = (uint8_t *)ptr - (uint8_t *)get_shm_user_base();
+		offt_in_shm = SHM_ADDR_TO_OFFT(ptr);
 	}
 
 	shm_free(offt_in_shm);
