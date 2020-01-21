@@ -35,8 +35,7 @@ A shared memory cache allocation library that provides 3 main functions:
         allocate space in shared memory and return offset from the start of shared memory instead.
     </li>
     <li>
-        The shared memory is just a regular file which is <code>mmap(2)</code>'d into the processes' address space. This is done in <code>shm_init()</code>. It's recommended to call <code>shm_init()</code> in
-        <a href="https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html"><code>__attribute__((constructor))</code></a> if it doesn't disturb your code to avoid unecessary clashes among threads.
+        The shared memory is just a regular file which is <code>mmap(2)</code>'d into the processes' address space. This is done in <code>shm_init()</code>.
     </li>
     <li>
         The shared memory is divided into small blocks and allocation of each block is managed by a buddy system in form of 
@@ -49,8 +48,8 @@ A shared memory cache allocation library that provides 3 main functions:
 
 <ol>
     <li>
-        It uses C11's atomic library. Also, it uses some of gcc extensions, which are available in clang as well.
-		So if you want standard C, good luck modifying.
+        It uses C11's atomic library. It has been ensured that this branch works with <code>(_POSIX_C_SOURCE >= 200809L)</code>.
+		It uses gcc/clang extensions if available.
     </li>
 	<li>
 		If you are ok with allocating memory in a certain range. e.g., our use case would let us allocate memory
@@ -58,7 +57,7 @@ A shared memory cache allocation library that provides 3 main functions:
 		Max and min sizes need to be power of 2 and difference of these powers should be <= 5 if 64 bit compiler and
 		<= 4 if 32 bit compiler.<br>
 		32 = 2<sup>5</sup> and 1024 = 2<sup>10</sup>. The requirement is satisified as 10 - 5 = 5. It could have been
-		2<sup>15</sup> to 2<sup>20</sup>. (See <a href="https://github.com/MihirLuthra/shm_alloc/blob/master/docs/how_to_use.md#changing-default-settings">changing defaults section</a>). <br>
+		2<sup>15</sup> to 2<sup>20</sup>. (See <a href="docs/how_to_use.md#changing-default-settings">changing defaults section</a>). <br>
 	</li>
 	<li>
 		The memory allocated on request of <em>n</em> bytes will be next closest power of 2 after <em>n</em> within range.
@@ -109,6 +108,7 @@ A shared memory cache allocation library that provides 3 main functions:
 
 int main()
 {
+	shm_init();
 	PTR(char) str;<br>
 	size_t string_len = 100;
 	str = shm_calloc(string_len, sizeof(char));<br>
@@ -119,6 +119,7 @@ int main()
 	strcpy(ACCESS(str, char), "My test string!");<br>
 	printf("%s\n", ACCESS(str, char));<br>
 	shm_free(str);<br>
+	shm_deinit();
 	return 0;
 }
 </pre>
