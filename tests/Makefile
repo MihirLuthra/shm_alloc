@@ -14,7 +14,7 @@ DYNAMIC_LIB_FLAGS := -fPIC -shared
 LIBS              := -latomic
 endif
 
-CFLAGS  := -O3 -D TEST_THE_TEST=0 -Wall -Wextra -fsanitize=address -I$(SHM_DIR) -I$(LSTACK_DIR)
+CFLAGS  := -O3 -D_POSIX_C_SOURCE=199506L -D TEST_THE_TEST=0 -Wall -Wextra -fsanitize=address -I$(SHM_DIR) -I$(LSTACK_DIR)
 
 test_shm_alloc.out: test_shm_alloc.c $(SHM_DIR)/libshm_alloc.$(DYLIB_EXT) rand_string_generator.o $(LSTACK_DIR)/lstack.o
 	$(CC) $(CFLAGS) -o $@ $< rand_string_generator.o $(LSTACK_DIR)/lstack.o $(LIBS) -L$(SHM_DIR) -lshm_alloc
