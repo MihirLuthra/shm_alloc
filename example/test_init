@@ -1,0 +1,52 @@
+#! /usr/bin/env bash
+
+# Source this file for setting up test preqrequisites
+
+is_sourced() {
+
+	if [[ "${BASH_SOURCE[0]}" != "${0}" ]]
+	then
+		return 0
+	fi
+
+	return 1
+}
+
+is_darwin() {
+
+	if [[ "$(uname -s)" = "Darwin"* ]]
+	then
+		return 0
+	fi
+	
+	return 1
+}
+
+main() {
+
+	local temp_file
+	local shm_dylib_dir
+
+	if ! is_sourced ; then
+		echo "usage: source ${BASH_SOURCE##*/}" 1>&2
+		return 1
+	fi
+
+	shm_dylib_dir="$(cd ../src/; echo ${PWD})"
+
+	if is_darwin; then
+		export DYLD_FALLBACK_LIBRARY_PATH="${shm_dylib_dir}:${DYLD_FALLBACK_LIBRARY_PATH}"
+	else
+		export LD_LIBRARY_PATH="${shm_dylib_dir}:${LD_LIBRARY_PATH}"
+	fi
+
+	temp_file="$(mktemp "shm_file_XXXXX")"
+
+	rm "${temp_file}"
+
+	export SHM_FILE="${temp_file}"
+
+	return 0
+}
+
+main "$@"
