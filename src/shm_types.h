@@ -1,11 +1,8 @@
-#if !defined(__SHM_TYPES_H__)
+#ifndef __SHM_TYPES_H__
 #define __SHM_TYPES_H__
 
 #include "shm_user_types.h"
-#include "shm_constants.h"
-
 #include <stdatomic.h>
-
 #include <stdint.h>
 
 #if ATOMIC_LONG_LOCK_FREE == 2
@@ -20,7 +17,7 @@ typedef unsigned int lock_free_int;
 
 #else /* ATOMIC_INT_LOCK_FREE == 2 */
 
-#	error "ATOMIC_LONG_LOCK_FREE and ATOMIC_INT_LOCK_FREE are both not 2, can't proceed"
+#	error "Neither ATOMIC_LONG_LOCK_FREE nor ATOMIC_INT_LOCK_FREE is 2, can't proceed"
 
 #endif
 
@@ -47,7 +44,6 @@ struct shm_data_table {
 struct shm_block_mgmt {
 	_Atomic(shm_bitmap) mgmt_bmp;
 	_Atomic(size_t)     mem_used;
-	_Atomic(uint8_t)    ffs_posn;
 };
 
 struct blk_hdr {
@@ -68,4 +64,4 @@ struct mem_offt_mgr {
 	size_t   mem;
 };
 
-#endif /* !defined(__SHM_TYPES_H__) */
+#endif /* __SHM_TYPES_H__ */

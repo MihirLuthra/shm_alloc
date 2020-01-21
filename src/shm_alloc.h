@@ -1,4 +1,4 @@
-#if !defined(__SHM_ALLOC_H__)
+#ifndef __SHM_ALLOC_H__
 #define __SHM_ALLOC_H__
 
 #include "shm_user_types.h"
@@ -26,4 +26,4 @@ void     shm_free(shm_offt shm_ptr);
 size_t get_shm_max_allocatable_size();
 size_t get_shm_min_allocatable_size();
 
-#endif /* !defined(__SHM_ALLOC_H__) */
+#endif /* __SHM_ALLOC_H__ */

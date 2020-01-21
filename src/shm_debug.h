@@ -16,7 +16,7 @@
  * automatically called.
  */
 
-#if !defined(__SHM_DEBUG_H__)
+#ifndef __SHM_DEBUG_H__
 #define __SHM_DEBUG_H__
 
 #include <sys/param.h>
