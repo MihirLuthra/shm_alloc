@@ -22,7 +22,6 @@
 #include <string.h>
 #include <unistd.h>
 
-uint8_t *user_shm_base;
 static _Atomic(struct shm_manager *) manager = NULL;
 
 
@@ -217,7 +216,7 @@ static void shm_deinit_by_manager(struct shm_manager *);
  * and mmap(2) the file into the current process.
  * This function can handle being called within multiple processes/threads.
  */
-void shm_init(void)
+bool shm_init(void *optional_addr)
 {
 	int retval, num_mgrs;
 	struct stat st;
@@ -228,22 +227,25 @@ void shm_init(void)
 	shm_bitmap old_bmp, new_bmp, set_mask;
 
 	if (manager != NULL) {
-		return;
+		return (false);
 	}
 
+#ifndef NDEBUG
 	if (BITMAP_SIZE > BITS) {
 		P_ERR_WITH_VARGS("This shm cache doesn't support power difference more than %d",
 		    MAX_ALLOC_POW2 - MIN_ALLOC_POW2 - __BUILTIN_CTZ(BITMAP_SIZE/BITS));
 		P_ERR_WITH_VARGS("Current MAX_ALLOC_POW2 - MIN_ALLOC_POW2 = %d\n", MAX_ALLOC_POW2 - MIN_ALLOC_POW2);
 		abort();
 	}
+#endif
 
 	assert(get_shm_min_allocatable_size() < get_shm_max_allocatable_size());
 
 	new_manager = malloc(sizeof(struct shm_manager));
+
 	if (new_manager == NULL) {
 		P_ERR("malloc(2) failed");
-		return;
+		return (false);
 	}
 
 	new_manager->shm_file.name = getenv(SHM_PATH_ENV_NAME);
@@ -251,7 +253,7 @@ void shm_init(void)
 	if (new_manager->shm_file.name == NULL) {
 
 		P_ERR_WITH_VARGS("getenv(3) failed for \"%s\"", SHM_PATH_ENV_NAME);
-		exit(EXIT_FAILURE);
+		return (false);
 	}
 
 	/* would create file if doesn't exist yet */
@@ -260,7 +262,7 @@ void shm_init(void)
 	if (new_manager->shm_file.fd == -1) {
 		P_ERR("open(2) failed");
 		free(new_manager);
-		return;
+		return (false);
 	}
 
 	retval = fstat(new_manager->shm_file.fd, &st);
@@ -268,11 +270,11 @@ void shm_init(void)
 	if (retval == -1) {
 		P_ERR("fstat(2) failed");
 		free(new_manager);
-		return;
+		return (false);
 	}
 
 	new_manager->shm_file.size = st.st_size;
-	new_manager->shm_mapping.size = get_shm_mapping_size();
+	new_manager->shm_mapping.size = SHM_MAPPING_SIZE;
 
 	if (new_manager->shm_file.size == 0) {
 
@@ -284,20 +286,26 @@ void shm_init(void)
 		if (retval == -1) {
 			free(new_manager);
 			P_ERR("ftruncate(2) failed");
-			return;
+			return (false);
 		}
 
 		 new_manager->shm_file.size = new_manager->shm_mapping.size;
 	}
 
-	new_manager->shm_mapping.base =
-	    mmap(NULL, new_manager->shm_file.size, PROT_READ | PROT_WRITE, MAP_SHARED,
-	    new_manager->shm_file.fd, 0);
+	if (optional_addr == NULL) {
+		new_manager->shm_mapping.base =
+		    mmap(NULL, new_manager->shm_file.size, PROT_READ | PROT_WRITE, MAP_SHARED,
+		    new_manager->shm_file.fd, 0);
+	} else {
+		new_manager->shm_mapping.base =
+		    mmap(optional_addr, new_manager->shm_file.size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED,
+		    new_manager->shm_file.fd, 0);
+	}
 
 	if (new_manager->shm_mapping.base == MAP_FAILED) {
 		free(new_manager);
 		P_ERR("mmap(2) failed");
-		return;
+		return (false);
 	}
 
 	/*
@@ -314,7 +322,7 @@ void shm_init(void)
 
 		P_ERR("mmap(2) failed while setting shm null");
 		free(new_manager);
-		return;
+		return (false);
 	}
 
 	(void)close(new_manager->shm_file.fd);
@@ -347,10 +355,15 @@ void shm_init(void)
 	    memory_order_relaxed, memory_order_relaxed)) {
 
 		shm_deinit_by_manager(new_manager);
-		return;
+		return (true);
 	}
 
-	user_shm_base = ACCESS_SHM_FOR_USER(0);
+	return (true);
+}
+
+size_t get_mapping_size_needed_by_shm()
+{
+	return (SHM_MAPPING_SIZE);
 }
 
 static void shm_deinit_by_manager(struct shm_manager *this_manager)
@@ -454,6 +467,46 @@ shm_offt shm_malloc(size_t size)
 	}
 
 	return (allocated_offset);
+}
+
+void *ptr_malloc(size_t size)
+{
+	shm_offt offt_in_shm;
+
+	offt_in_shm = shm_malloc(size);
+
+	if (offt_in_shm == SHM_NULL) {
+		return (NULL);
+	}
+
+	return ((uint8_t *)get_shm_user_base() + offt_in_shm);
+}
+
+
+void *ptr_calloc(size_t count, size_t size)
+{
+	shm_offt offt_in_shm;
+
+	offt_in_shm = shm_calloc(count, size);
+
+	if (offt_in_shm == SHM_NULL) {
+		return (NULL);
+	}
+
+	return ((uint8_t *)get_shm_user_base() + offt_in_shm);
+}
+
+void ptr_free(void *ptr)
+{
+	shm_offt offt_in_shm;
+
+	if (ptr == NULL) {
+		offt_in_shm = SHM_NULL;
+	} else {
+		offt_in_shm = (uint8_t *)ptr - (uint8_t *)get_shm_user_base();
+	}
+
+	shm_free(offt_in_shm);
 }
 
 shm_offt shm_calloc(size_t cnt, size_t size)
