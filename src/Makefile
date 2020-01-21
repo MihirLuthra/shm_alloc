@@ -30,8 +30,8 @@ clean:
 
 # For debugging
 
-debug: shm_alloc.c shm_alloc.h shm_bit_fiddler.h shm_types.h shm_err.h shm_constants.o libshm_debug.$(DYLIB_EXT)
-	$(CC) $(CFLAGS) $(DYNAMIC_LIB_FLAGS) -o $(SHM_LIB_NAME) $<  shm_constants.o -L. -lshm_debug
+debug: shm_alloc.c shm_alloc.h shm_bit_fiddler.h shm_types.h shm_err.h builtin_alternatives.o libshm_debug.$(DYLIB_EXT)
+	$(CC) $(CFLAGS) $(DYNAMIC_LIB_FLAGS) -o $(SHM_LIB_NAME) $< builtin_alternatives.o -L. -lshm_debug
 
 # TODO: Want to LD_PRELOAD this to intercept thread creation functions
 # So kept this a dylib
