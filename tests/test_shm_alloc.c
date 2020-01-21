@@ -48,6 +48,15 @@
 #	define shm_calloc            calloc
 #	define shm_free              free
 
+#elif TEST_WITH_PTR
+
+#	define PTR(type)             type *
+#	define ACCESS(ptr, type)     ((type *)ptr)
+#	define shm_malloc            ptr_malloc
+#	define shm_calloc            ptr_calloc
+#	define shm_free              ptr_free
+
+
 #else
 
 #	define PTR(type)             shm_offt
@@ -216,7 +225,7 @@ void *tester_func(void *arg)
 {
 
 	/* to test if shm_init() is thread safe, we call it here */
-	shm_init();
+	shm_init(NULL);
 
 	struct test_results_mgr * test_result = arg;
 
