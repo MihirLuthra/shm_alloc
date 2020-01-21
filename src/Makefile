@@ -10,7 +10,7 @@ DYLIB_EXT         := so
 DYNAMIC_LIB_FLAGS := -fPIC -shared
 endif
 
-CFLAGS := -D_POSIX_C_SOURCE=199506L -O3 -Wall -Wextra -pedantic-errors -DNDEBUG
+CFLAGS := -D_POSIX_C_SOURCE=200809L -O3 -Wall -Wextra -pedantic-errors -DNDEBUG
 
 CFLAGS += $(USER_FLAGS)
 
