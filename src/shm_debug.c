@@ -9,8 +9,8 @@
 #include <string.h>
 #include <unistd.h>
 
-__thread char pid_file_name[MAXPATHLEN];
-__thread FILE *pid_file;
+_Thread_local char pid_file_name[MAXPATHLEN];
+_Thread_local FILE *pid_file;
 
 void open_pid_file()
 {
@@ -72,7 +72,7 @@ void print_buddy_bitmap(shm_bitmap bmp, FILE *outfile)
 void print_all_bits(shm_bitmap bmp, FILE *outfile)
 {
 	for(int i = BITS - 1 ; i >= 0 ; --i)
-		fprintf(outfile, "%llu", ((shm_bitmap)bmp >> i) & (shm_bitmap)1);
+		fprintf(outfile, "%" PRIu_shm_offt, ((shm_bitmap)bmp >> i) & (shm_bitmap)1);
 
 	fprintf(outfile, "\n");
 }

@@ -22,8 +22,8 @@
 #include <sys/param.h>
 #include "shm_types.h"
 
-extern __thread char pid_file_name[MAXPATHLEN];
-extern __thread FILE *pid_file;
+extern _Thread_local char pid_file_name[MAXPATHLEN];
+extern _Thread_local FILE *pid_file;
 
 void open_pid_file();
 
