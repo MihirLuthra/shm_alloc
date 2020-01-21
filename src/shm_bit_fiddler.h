@@ -1,19 +1,128 @@
-#if !defined(__SHM_BIT_FIDDLER__)
+#ifndef __SHM_BIT_FIDDLER__
 #define __SHM_BIT_FIDDLER__
 
+#include "builtin_alternatives.h"
+#include "shm_constants.h"
 #include "shm_types.h"
 #include <stdatomic.h>
 #include <stdbool.h>
+#include <strings.h>
 
-#if ATOMIC_LONG_LOCK_FREE == 2
-#	define __BUILTIN_POPCOUNT(num)  __builtin_popcountl(num)
-#	define __BUILTIN_CLZ(num)       __builtin_clzl(num)
-#	define __BUILTIN_FFS(num)       __builtin_ffsl(num)
-#elif ATOMIC_INT_LOCK_FREE == 2
-#	define __BUILTIN_POPCOUNT(num)  __builtin_popcount(num)
-#	define __BUILTIN_CLZ(num)       __builtin_clz(num)
-#	define __BUILTIN_FFS(num)       __builtin_ffs(num)
+/* defined 1 when set below */
+#define SHM_DID_SET_BUILTINS (0)
+
+/*
+ * GCC
+ *
+ * __builtin_(popcount|ffs|ctz|clz) were added to gcc 3.4.0
+ *
+ */
+
+/*
+ * CLANG
+ *
+ * __builtin_(popcount|ctz|clz) were added to llvm 1.5
+ * clang1.0 was released with llvm 2.6 for the first time
+ *
+ * I couldn't find any mention about __builin_ffs(),
+ * so will check __builin_ffs with __has_builtin()
+ * and if not present, then use ffs(3).
+ */
+
+#if !SHM_DID_SET_BUILTINS
+
+#ifdef __clang__
+#	ifdef __llvm__
+#		if ATOMIC_LONG_LOCK_FREE == 2
+#			define __BUILTIN_POPCOUNT(num)  __builtin_popcountl(num)
+#			define __BUILTIN_CLZ(num)       __builtin_clzl(num)
+#			define __BUILTIN_CTZ(num)       __builtin_ctzl(num)
+#			define __BUILTIN_FFS(num)		builtin_alternative_ffsl(num)
+
+#			ifdef __has_builtin
+#				undef __BUILTIN_FFS
+#				if __has_builtin(__builtin_ffsl)
+#					define __BUILTIN_FFS(num)  __builtin_ffsl(num)
+#				endif
+#			endif
+
+#		elif ATOMIC_INT_LOCK_FREE == 2
+#			define __BUILTIN_POPCOUNT(num)  __builtin_popcount(num)
+#			define __BUILTIN_CLZ(num)       __builtin_clz(num)
+#			define __BUILTIN_CTZ(num)       __builtin_ctz(num)
+#			define __BUILTIN_FFS(num)       ffs(num)
+
+#			ifdef __has_builtin
+#				undef __BUILTIN_FFS
+#				if __has_builtin(__builtin_ffs)
+#					define __BUILTIN_FFS(num)  __builtin_ffs(num)
+#				endif
+#			endif
+
+#		else
+#			error "Neither ATOMIC_LONG_LOCK_FREE nor ATOMIC_INT_LOCK_FREE is 2, can't proceed"
+#		endif
+
+#	undef SHM_DID_SET_BUILTINS
+#	define SHM_DID_SET_BUILTINS (1)
+
+#	endif /* __llvm__ */
+#endif /* __clang__ */
+
+#endif /* !SHM_DID_SET_BUILTINS */
+
+
+#if !SHM_DID_SET_BUILTINS
+
+#ifdef __GNUC__
+/* checking for gnu version 3.4.0 */
+#	if __GNUC__ > 3 || \
+	    (__GNUC__ == 3 && (__GNUC_MINOR__ > 4 || \
+	                       (__GNUC_MINOR__ == 4 && \
+	                        __GNUC_PATCHLEVEL__ > 0)))
+#		if ATOMIC_LONG_LOCK_FREE == 2
+#			define __BUILTIN_POPCOUNT(num)  __builtin_popcountl(num)
+#			define __BUILTIN_CLZ(num)       __builtin_clzl(num)
+#			define __BUILTIN_CTZ(num)       __builtin_ctzl(num)
+#			define __BUILTIN_FFS(num)       __builtin_ffsl(num)
+#		elif ATOMIC_INT_LOCK_FREE == 2
+#			define __BUILTIN_POPCOUNT(num)  __builtin_popcount(num)
+#			define __BUILTIN_CLZ(num)       __builtin_clz(num)
+#			define __BUILTIN_CTZ(num)       __builtin_ctz(num)
+#			define __BUILTIN_FFS(num)       __builtin_ffs(num)
+#		else
+#			error "Neither ATOMIC_LONG_LOCK_FREE nor ATOMIC_INT_LOCK_FREE is 2, can't proceed"
+#		endif
+
+#	undef SHM_DID_SET_BUILTINS
+#	define SHM_DID_SET_BUILTINS (1)
+
+#	endif
 #endif
+
+#endif /* !SHM_DID_SET_BUILTINS */
+
+
+#if !SHM_DID_SET_BUILTINS
+
+#	if ATOMIC_LONG_LOCK_FREE == 2
+#		define __BUILTIN_POPCOUNT(num)  builtin_alternative_popcount(num)
+#		define __BUILTIN_CLZ(num)       builtin_alternative_clz(num)
+#		define __BUILTIN_CTZ(num)       (builtin_alternative_ffsl(num) - 1)
+#		define __BUILTIN_FFS(num)       builtin_alternative_ffsl(num)
+#	elif ATOMIC_INT_LOCK_FREE == 2
+#		define __BUILTIN_POPCOUNT(num)  builtin_alternative_popcount(num)
+#		define __BUILTIN_CLZ(num)       builtin_alternative_clz(num)
+#		define __BUILTIN_CTZ(num)       (ffs(num) - 1)
+#		define __BUILTIN_FFS(num)       ffs(num)
+#	else
+#		error "Neither ATOMIC_LONG_LOCK_FREE nor ATOMIC_INT_LOCK_FREE is 2, can't proceed"
+#	endif
+
+#	undef SHM_DID_SET_BUILTINS
+#	define SHM_DID_SET_BUILTINS (1)
+
+#endif /* !SHM_DID_SET_BUILTINS */
 
 
 #define BITS (sizeof(shm_bitmap) * 8)
@@ -152,4 +261,4 @@ static inline int get_rel_bit_pos(int abs_bit_pos)
 	return (abs_bit_pos - get_prev_power_of_two(abs_bit_pos));
 }
 
-#endif /* !defined(__SHM_BIT_FIDDLER__) */
+#endif /* __SHM_BIT_FIDDLER__ */
