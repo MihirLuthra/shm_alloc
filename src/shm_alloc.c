@@ -1,5 +1,6 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 #include <assert.h>
 #include <fcntl.h>
@@ -11,6 +12,7 @@
 #include "shm_debug.h"
 #include "shm_err.h"
 #include "shm_types.h"
+#include "shm_user_types.h"
 
 #include <stdarg.h>
 #include <stdatomic.h>
@@ -230,9 +232,9 @@ void shm_init(void)
 	}
 
 	if (BITMAP_SIZE > BITS) {
-		P_ERR("This shm cache doesn't support power difference more than %d",
-		    MAX_ALLOC_POW2 - MIN_ALLOC_POW2 - __builtin_ctz(BITMAP_SIZE/BITS));
-		P_ERR("Current MAX_ALLOC_POW2 - MIN_ALLOC_POW2 = %d\n", MAX_ALLOC_POW2 - MIN_ALLOC_POW2);
+		P_ERR_WITH_VARGS("This shm cache doesn't support power difference more than %d",
+		    MAX_ALLOC_POW2 - MIN_ALLOC_POW2 - __BUILTIN_CTZ(BITMAP_SIZE/BITS));
+		P_ERR_WITH_VARGS("Current MAX_ALLOC_POW2 - MIN_ALLOC_POW2 = %d\n", MAX_ALLOC_POW2 - MIN_ALLOC_POW2);
 		abort();
 	}
 
@@ -244,13 +246,11 @@ void shm_init(void)
 		return;
 	}
 
-	shm_null_init();
-
 	new_manager->shm_file.name = getenv(SHM_PATH_ENV_NAME);
 
 	if (new_manager->shm_file.name == NULL) {
 
-		P_ERR("getenv(3) failed for \"%s\"", SHM_PATH_ENV_NAME);
+		P_ERR_WITH_VARGS("getenv(3) failed for \"%s\"", SHM_PATH_ENV_NAME);
 		exit(EXIT_FAILURE);
 	}
 
@@ -417,7 +417,7 @@ shm_offt shm_malloc(size_t size)
 		reqd_size = MIN_ALLOCATABLE_SIZE;
 
 	if (reqd_size > MAX_ALLOCATABLE_SIZE) {
-		P_ERR("Can't allocate %zu bytes, MAX_ALLOCATABLE_SIZE = %zu", reqd_size, MAX_ALLOCATABLE_SIZE);
+		P_ERR_WITH_VARGS("Can't allocate %zu bytes, MAX_ALLOCATABLE_SIZE = %zu", reqd_size, MAX_ALLOCATABLE_SIZE);
 		return (SHM_NULL);
 	}
 
@@ -660,7 +660,7 @@ static int occupy_mem_in_bitmap(struct shm_block_mgmt *blk_mgr, size_t mem)
 {
 	shm_bitmap mask, set_mask, old_bmp, new_bmp;
 	int start_pos, cnt;
-	int first_set_bit, rel_first_set_bit;
+	int first_set_bit, rel_first_set_bit, ffs_res;
 	bool cas_res;
 
 	start_pos = cnt = MAX_ALLOCATABLE_SIZE/mem;
@@ -670,14 +670,8 @@ static int occupy_mem_in_bitmap(struct shm_block_mgmt *blk_mgr, size_t mem)
 
 	do {
 
-		/* to reduce clashes among processes, do ffs from both sides */
-		if (atomic_fetch_add_explicit(&blk_mgr->ffs_posn, 1, memory_order_relaxed) % 2 == 0) {
-			/* ffs from left */
-			first_set_bit = mask ? __BUILTIN_CLZ(mask) : -1;
-		} else {
-			/* ffs from right */
-			first_set_bit = BITS - (__BUILTIN_FFS(mask) ? : BITS + 1);
-		}
+		ffs_res = __BUILTIN_FFS(mask);
+		first_set_bit = BITS - (ffs_res != 0 ? ffs_res : BITS + 1);
 
 		if (first_set_bit == -1) {
 			return (first_set_bit);
