@@ -142,7 +142,7 @@ static inline shm_offt get_shm_null_base_offt()
 {
 	shm_offt offt;
 	offt = get_shm_mgmt_base_offt() + get_shm_mgmt_size();
-	
+
 	offt += diff_next_page_boundary(offt);
 
 	return (offt);
