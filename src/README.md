@@ -1,5 +1,7 @@
 <strong>Makefile</strong> : For generating `shm_alloc.dylib` on `macOS` and `shm_alloc.so` on others.
 
+<strong>builtin_alternatives.(c|h)</strong> : For using in case of absense of gcc builtins.
+
 <strong>shm_alloc.c</strong> : Contains the main logic for the shared memory
 
 <strong>shm_alloc.h</strong> : The only file that needs to be included by the user to use the library functions.
