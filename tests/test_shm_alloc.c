@@ -224,8 +224,14 @@ struct test_results_mgr ** spawn_threads_for_test(int thrd_cnt, void *(*tester_f
 void *tester_func(void *arg)
 {
 
-	/* to test if shm_init() is thread safe, we call it here */
-	shm_init(NULL);
+	/* 
+	 * to test if shm_init() is thread safe, we call it here 
+	 * param1 is passed as NULL and we let shm_init() choose
+	 * the address where shared mem is set.
+	 * param2 is NULL as the test will rely upon env varibale
+	 * SHM_FILE for file name.
+	 */
+	shm_init(NULL, NULL);
 
 	struct test_results_mgr * test_result = arg;
 

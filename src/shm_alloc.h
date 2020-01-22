@@ -19,10 +19,12 @@ size_t get_mapping_size_needed_by_shm();
  * OPTIONAL:
  *  param1 : should be a page aligned address that will be used as
  *   first argument in mmap(2) with MAP_FIXED.
- *  Just use NULL if you don't care where in the address space
- *  shared memory is present.
+ *   Just use NULL if you don't care where in the address space
+ *   shared memory is present.
+ *  param2 : This is also optional "if" filename has been
+ *   defined by environment variable SHM_FILE.
  */
-bool shm_init(void *optional_addr);
+bool shm_init(void *optional_addr, const char *shm_filename);
 void shm_deinit(void);
 
 void * get_shm_user_base(void);

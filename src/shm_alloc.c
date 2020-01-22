@@ -216,7 +216,7 @@ static void shm_deinit_by_manager(struct shm_manager *);
  * and mmap(2) the file into the current process.
  * This function can handle being called within multiple processes/threads.
  */
-bool shm_init(void *optional_addr)
+bool shm_init(void *optional_addr, const char *shm_filename)
 {
 	int retval, num_mgrs;
 	struct stat st;
@@ -248,11 +248,18 @@ bool shm_init(void *optional_addr)
 		return (false);
 	}
 
-	new_manager->shm_file.name = getenv(SHM_PATH_ENV_NAME);
+	/*
+	 * Check SHM_FILE env variable if shm_filename is NULL
+	 */
+	if (shm_filename == NULL) {
+		new_manager->shm_file.name = getenv(SHM_PATH_ENV_NAME);
+	} else {
+		new_manager->shm_file.name = shm_filename;
+	}
 
 	if (new_manager->shm_file.name == NULL) {
 
-		P_ERR_WITH_VARGS("getenv(3) failed for \"%s\"", SHM_PATH_ENV_NAME);
+		P_ERR_WITH_VARGS("arg(shm_filename) is NULL and getenv(3) failed for \"%s\" as well", SHM_PATH_ENV_NAME);
 		return (false);
 	}
 
