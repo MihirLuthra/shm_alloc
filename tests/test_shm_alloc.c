@@ -3,16 +3,11 @@
 
 #include <errno.h>
 
-#ifdef __has_include
-#	if __has_include (<libkern/OSAtomicQueue.h>)
-#		include <libkern/OSAtomicQueue.h>
-#	define HAVE_OSATOMICQUEUE
-#	endif
-#endif
-
-#ifndef HAVE_OSATOMICQUEUE
-#	include "lstack.h"
-#endif
+/*
+ * Thanks to https://github.com/skeeto/lstack
+ * for the atomic lock free stack
+ */
+#include "lstack.h"
 
 #include <pthread.h>
 
@@ -42,45 +37,21 @@
 
 #if TEST_THE_TEST
 
-#	define PTR(type)             type *
-#	define ACCESS(ptr, type)     ((type *)ptr)
-#	define shm_malloc            malloc
-#	define shm_calloc            calloc
-#	define shm_free              free
-
-#elif TEST_WITH_PTR
-
-#	define PTR(type)             type *
-#	define ACCESS(ptr, type)     ((type *)ptr)
-#	define shm_malloc            ptr_malloc
-#	define shm_calloc            ptr_calloc
-#	define shm_free              ptr_free
-
-
-#else
-
-#	define PTR(type)             shm_offt
-#	define ACCESS(offset, type)  ((type *)((uint8_t *)get_shm_user_base() + (offset)))
+#	define ptr_malloc  malloc
+#	define ptr_calloc  calloc
+#	define ptr_free    free
 
 #endif
 
-char **rand_strings;
-long max_idx;
-_Atomic(long) cur_idx = 0;
+char **global_rand_strings;
+int global_max_idx;
+_Atomic(int) global_idx_counter = 0;
 
-#ifdef HAVE_OSATOMICQUEUE
-OSFifoQueueHead queue = OS_ATOMIC_FIFO_QUEUE_INIT;
-#else
 lstack_t stack;
-#endif
 
 struct inserted_data_mgr {
-	PTR(char) in_shm;
+	shm_offt  in_shm;
 	int       idx;
-
-#ifdef HAVE_OSATOMICQUEUE
-	struct inserted_data_mgr * link;
-#endif
 };
 
 struct test_results_mgr {
@@ -88,14 +59,133 @@ struct test_results_mgr {
 	bool status;
 };
 
+struct cmdline_args {
+	int process_count;
+	int thread_count;
+	int num_strings;
+	bool error;
+};
 
-void   generate_processes(int process_cnt);
-struct test_results_mgr ** spawn_threads_for_test(int thrd_cnt, void *(*tester_func)(void *));
-void  *tester_func(void *arg);
-void   display_test_results(struct test_results_mgr **test_results_per_thrd, int thrd_cnt);
 
+/*
+ * Prints basic test details.
+ */
+void test_details(void);
+
+/*
+ * Manages command line args and returns a
+ * `struct cmdline_args` type.
+ */
+struct cmdline_args parse_args(int argc, char *argv[]);
+
+/*
+ * calls fork(2) from the "current process (process_cnt - 1)
+ * times. Means it generates process 1 less than the arg.
+ */
+void generate_processes(int process_cnt);
+
+/*
+ * It would spawn threads for testing and
+ * record the result from each thread in
+ * param3
+ */
+void spawn_threads_for_test(int thrd_cnt, void *(*tester_func)(void *), struct test_results_mgr **);
+
+/*
+ * It does the main testing. Also, shm_init()
+ * is called inside it to test if shm_init() is thread safe.
+ */
+void *tester_func(void *arg);
+
+/*
+ * Displays the results as received from spawn_threads_for_test()
+ */
+void display_test_results(struct test_results_mgr **test_results_per_thrd, int thrd_cnt);
+
+void usage(char *prog_name);
 
 int main(int argc, char *argv[])
+{
+	struct cmdline_args args;
+	size_t min_rand_strlen, max_rand_strlen;
+	char rand_str_lower_ascii_limit, rand_str_upper_ascii_limit;
+	struct test_results_mgr **test_results;
+	int status, i;
+
+	test_details();
+
+	args = parse_args(argc, argv);
+
+	if (args.error == true) {
+		usage(argv[0]);
+		/* NOT REACHED */
+	}
+
+	/*
+	 * this shared memory allocator can't
+	 * allocate more than get_shm_max_allocatable_size().
+	 * So that's the max string size we will generate.
+	 */
+	min_rand_strlen = 1;
+	max_rand_strlen = get_shm_max_allocatable_size();
+
+	rand_str_lower_ascii_limit = 65;
+	rand_str_upper_ascii_limit = 91;
+
+	global_rand_strings =
+	    generate_rand_arr_of_strs(args.num_strings, min_rand_strlen, max_rand_strlen,
+	    rand_str_lower_ascii_limit, rand_str_upper_ascii_limit);
+
+	if (global_rand_strings == NULL) {
+		P_ERR("generate_rand_arr_of_strs() failed");
+		exit(EXIT_FAILURE);
+	}
+	
+	global_max_idx = args.num_strings;
+
+	test_results = malloc(sizeof(struct test_results_mgr *) * args.thread_count);
+
+	if (test_results == NULL) {
+		P_ERR("malloc(2) failed");
+		exit(EXIT_FAILURE);
+	}
+
+	for (i = 0 ; i < args.thread_count ; ++i) {
+
+		test_results[i] = malloc(sizeof(struct test_results_mgr));
+
+		if (test_results[i] == NULL) {
+			P_ERR("malloc(2) failed");
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	generate_processes(args.process_count);
+	
+	/*
+	 * test_results are filled when function returns with
+	 * the result from each thread.
+	 */
+	spawn_threads_for_test(args.thread_count, tester_func, test_results);
+
+	display_test_results(test_results, args.thread_count);
+
+	free_rand_strings(global_rand_strings, args.num_strings);
+
+	for (i = 0 ; i < args.thread_count ; ++i) {
+		free(test_results[i]);
+	}
+
+	free(test_results);
+
+	status = 0;
+	while (wait(&status) > 0);
+
+	return 0;
+}
+
+
+void test_details(void)
 {
 #if TEST_THE_TEST
 	printf("Testing the working of test with malloc(2), calloc(2) and free(2)\n");
@@ -103,89 +193,83 @@ int main(int argc, char *argv[])
 	printf("Max allocatable size by shm_(m|c)alloc() = %zu\n", get_shm_max_allocatable_size());
 	printf("Min allocatable size by shm_(m|c)alloc() = %zu\n", get_shm_min_allocatable_size());
 #endif
+}
+
+
+void usage(char *prog_name)
+{
+	fprintf(stderr, "usage: %s process_count thread_count num_strings\n", prog_name);
+	exit(EXIT_FAILURE);
+}
+
+struct cmdline_args parse_args(int argc, char *argv[])
+{
+
+	struct cmdline_args args;
+	
+	args.error = false;
 
 	if (argc != 4) {
-		fprintf(stderr, "usage: %s process_count thread_count num_strings\n", argv[0]);
-		exit(EXIT_FAILURE);
+		fprintf(stderr, "Invalid number of args\n");
+		args.error = true;
+		return (args);
 	}
 
 	errno = 0;
-	const int process_count = (int)strtol(argv[1], (char **)NULL, 10);
-	if (process_count <= 0) {
-		if (errno != 0)
+	args.process_count = (int)strtol(argv[1], (char **)NULL, 10);
+	if (args.process_count <= 0) {
+		if (errno != 0) {
 			P_ERR("Invalid process count");
-		exit(EXIT_FAILURE);
+		}
+		args.error = true;
+		return (args);
 	}
 
 	errno = 0;
-	const int thread_count  = (int)strtol(argv[2], (char **)NULL, 10);
-	if (thread_count <= 0) {
-		if (errno != 0)
+	args.thread_count  = (int)strtol(argv[2], (char **)NULL, 10);
+	if (args.thread_count <= 0) {
+		if (errno != 0) {
 			P_ERR("Invalid thread count");
-		exit(EXIT_FAILURE);
+		}
+		args.error = true;
+		return (args);
 	}
 
 	errno = 0;
-	max_idx = strtol(argv[3], (char **)NULL, 10);
-	if (max_idx <= 0) {
-		if (errno != 0)
+	args.num_strings = strtol(argv[3], (char **)NULL, 10);
+	if (args.num_strings <= 0) {
+		if (errno != 0) {
 			P_ERR("Invalid string count");
-		exit(EXIT_FAILURE);
-	}
+		}
+		args.error = true;
+		return (args);
+	}	
 
-#ifndef HAVE_OSATOMICQUEUE
-	if (lstack_init(&stack, max_idx) != 0) {
-		P_ERR("lstack_init() failed");
-		exit(EXIT_FAILURE);
-	}
-#endif
-
-	generate_processes(process_count);
-
-	rand_strings =
-	    generate_rand_arr_of_strs(max_idx, 1, get_shm_max_allocatable_size(), 65, 91);
-
-	if (rand_strings == NULL) {
-		P_ERR("generate_rand_arr_of_strs() failed");
-		exit(EXIT_FAILURE);
-	}
-
-	struct test_results_mgr **test_results;
-	test_results = spawn_threads_for_test(thread_count, tester_func);
-
-	display_test_results(test_results, thread_count);
-
-#ifndef HAVE_OSATOMICQUEUE
-	lstack_free(&stack);
-#endif
-
-	free_rand_strings(rand_strings, max_idx);
-	shm_deinit();
-
-	for (int i = 0 ; i < thread_count ; ++i)
-		free(test_results[i]);
-
-	free(test_results);
-
-	int status = 0;
-	while (wait(&status) > 0);
-
-	return 0;
+	return (args);
 }
 
 void generate_processes(int process_cnt)
 {
-	for (int i = 0 ; i < process_cnt - 1 ; ++i)
-		if (fork() == 0)
+	for (int i = 0 ; i < process_cnt - 1 ; ++i) {
+		if (fork() == 0) {
 			break;
+		}
+	}
 }
 
 
-struct test_results_mgr ** spawn_threads_for_test(int thrd_cnt, void *(*tester_func)(void *))
+void spawn_threads_for_test(int thrd_cnt, void *(*tester_func)(void *), struct test_results_mgr ** test_results)
 {
 	int i;
-	struct test_results_mgr ** test_results;
 	pthread_t * thrds;
+
+	/*
+	 * The atomic stack that all threads will use.
+	 */
+	if (lstack_init(&stack, global_max_idx) != 0) {
+		P_ERR("lstack_init() failed");
+		exit(EXIT_FAILURE);
+	}
 
 	thrds = malloc(sizeof(pthread_t) * thrd_cnt);
 
@@ -194,31 +278,17 @@ struct test_results_mgr ** spawn_threads_for_test(int thrd_cnt, void *(*tester_f
 		exit(EXIT_FAILURE);
 	}
 
-	test_results = malloc(sizeof(struct test_results_mgr *) * thrd_cnt);
-
-	if (test_results == NULL) {
-		P_ERR("malloc(2) failed");
-		exit(EXIT_FAILURE);
-	}
-
 	for (i = 0 ; i < thrd_cnt ; ++i) {
-
-		test_results[i] = malloc(sizeof(struct test_results_mgr));
-
-		if (test_results[i] == NULL) {
-			P_ERR("malloc(2) failed");
-			exit(EXIT_FAILURE);
-		}
-
 		pthread_create(&thrds[i], NULL, tester_func, test_results[i]);
 	}
 
-	for (i = 0 ; i < thrd_cnt ; ++i)
+	for (i = 0 ; i < thrd_cnt ; ++i) {
 		pthread_join(thrds[i], NULL);
+	}
 
 	free(thrds);
-
-	return (test_results);
+	lstack_free(&stack);
+	shm_deinit();
 }
 
 void *tester_func(void *arg)
@@ -237,21 +307,21 @@ void *tester_func(void *arg)
 
 	struct inserted_data_mgr *data;
 
-	PTR(char) str;
+	char *str;
 	int idx;
 
 	test_result->status = true;
 
-	while ((idx = atomic_fetch_add(&cur_idx, 1)) < max_idx) {
+	while ((idx = atomic_fetch_add(&global_idx_counter, 1)) < global_max_idx) {
 
-		str = shm_calloc(1, strlen(rand_strings[idx]) + 1);
+		str = ptr_calloc(1, strlen(global_rand_strings[idx]) + 1);
 
-		if (str == SHM_NULL) {
-			P_ERR("shm_calloc() : out of memory\n");
+		if (str == NULL) {
+			P_ERR("ptr_calloc() : out of memory\n");
 			exit(EXIT_FAILURE);
 		}
 
-		strcpy(ACCESS(str, char), rand_strings[idx]);
+		strcpy(str, global_rand_strings[idx]);
 
 		data = malloc(sizeof(struct inserted_data_mgr));
 
@@ -261,30 +331,23 @@ void *tester_func(void *arg)
 		}
 
 		data->idx    = idx;
-		data->in_shm = str;
+		data->in_shm = SHM_ADDR_TO_OFFT(str);
 
-#ifdef HAVE_OSATOMICQUEUE
-		OSAtomicFifoEnqueue(&queue, data, offsetof(struct inserted_data_mgr, link));
-#else
 		if (lstack_push(&stack, data) != 0) {
 			P_ERR("lstack_push(2) failed");
 			exit(EXIT_FAILURE);
 		}
-#endif
 
 		sleep(0);
 
-#ifdef HAVE_OSATOMICQUEUE
-		data = OSAtomicFifoDequeue(&queue, offsetof(struct inserted_data_mgr, link));
-#else
 		data = lstack_pop(&stack);
-#endif
+		
 		/*
-		 * The data being popped/dequed maybe the same that was pushed/enqued
+		 * The data being popped maybe the same that was pushed
 		 * or different if thread got changed. In any case, even if the same data
 		 * is got back, below data is checked for correctness and then if
 		 * a randomly generated number is divisible by 3, only then this data is freed,
-		 * otherwise its pushed/enqued again for getting checked again.
+		 * otherwise its pushed again for getting checked again.
 		 */
 
 		if (data == NULL) {
@@ -292,9 +355,9 @@ void *tester_func(void *arg)
 		}
 
 		idx = data->idx;
-		str = data->in_shm;
+		str = SHM_OFFT_TO_ADDR(data->in_shm);
 
-		if (strcmp(ACCESS(str, char) , rand_strings[idx])) {
+		if (strcmp(str, global_rand_strings[idx])) {
 
 			test_result->status = false;
 			break;
@@ -304,53 +367,41 @@ void *tester_func(void *arg)
 			/*
 			 * Just to make it more random,
 			 * generate a random number and if its divisible by 3,
-			 * shm_free() the dequed offset else enqueue it again
+			 * shm_free() the popped offset else push it again
 			 */
 
 			if (rand() % 3 == 0) {
-				shm_free(str);
+				ptr_free(str);
 				free(data);
 			} else {
-#ifdef HAVE_OSATOMICQUEUE
-				OSAtomicFifoEnqueue(&queue, data, offsetof(struct inserted_data_mgr, link));
-#else
 				lstack_push(&stack, data);
-#endif
 			}
 		}
 
 	}
 
-#ifdef HAVE_OSATOMICQUEUE
-		data = OSAtomicFifoDequeue(&queue, offsetof(struct inserted_data_mgr, link));
-#else
-		data = lstack_pop(&stack);
-#endif
+	data = lstack_pop(&stack);
 
 	while(data != NULL) {
 
 		idx = data->idx;
-		str = data->in_shm;
+		str = SHM_OFFT_TO_ADDR(data->in_shm);
 
-		if (strcmp(ACCESS(str, char), rand_strings[idx])) {
+		if (strcmp(str, global_rand_strings[idx])) {
 
 			test_result->status = false;
 			break;
 
 		} else {
-			shm_free(str);
+			ptr_free(str);
 			free(data);
 		}
-#ifdef HAVE_OSATOMICQUEUE
-		data = OSAtomicFifoDequeue(&queue, offsetof(struct inserted_data_mgr, link));
-#else
 		data = lstack_pop(&stack);
-#endif
 	}
 
 	test_result->tid = (long)pthread_self();
 
-	return NULL;
+	return (NULL);
 }
 
 
