@@ -92,7 +92,7 @@ void generate_processes(int process_cnt);
 void spawn_threads_for_test(int thrd_cnt, void *(*tester_func)(void *), struct test_results_mgr **);
 
 /*
- * It does the main testing. Also, shm_init()
+ * It does the main testing. Also,shm_init()
  * is called inside it to test if shm_init() is thread safe.
  */
 void *tester_func(void *arg);
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 		P_ERR("generate_rand_arr_of_strs() failed");
 		exit(EXIT_FAILURE);
 	}
-	
+
 	global_max_idx = args.num_strings;
 
 	test_results = malloc(sizeof(struct test_results_mgr *) * args.thread_count);
@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
 	}
 
 	generate_processes(args.process_count);
-	
+
 	/*
 	 * test_results are filled when function returns with
 	 * the result from each thread.
@@ -206,7 +206,7 @@ struct cmdline_args parse_args(int argc, char *argv[])
 {
 
 	struct cmdline_args args;
-	
+
 	args.error = false;
 
 	if (argc != 4) {
@@ -293,22 +293,25 @@ void spawn_threads_for_test(int thrd_cnt, void *(*tester_func)(void *), struct t
 
 void *tester_func(void *arg)
 {
+	bool retval;	
+	struct test_results_mgr * test_result = arg;
+	struct inserted_data_mgr *data;
+	char *str;
+	int idx;
 
-	/* 
-	 * to test if shm_init() is thread safe, we call it here 
+	/*
+	 * to test if shm_init() is thread safe, we call it here
 	 * param1 is passed as NULL and we let shm_init() choose
 	 * the address where shared mem is set.
 	 * param2 is NULL as the test will rely upon env varibale
 	 * SHM_FILE for file name.
 	 */
-	shm_init(NULL, NULL);
+	retval = shm_init(NULL, NULL);
 
-	struct test_results_mgr * test_result = arg;
-
-	struct inserted_data_mgr *data;
-
-	char *str;
-	int idx;
+	if (retval == false) {
+		P_ERR("shm_init() failed");
+		exit(EXIT_FAILURE);
+	}
 
 	test_result->status = true;
 
