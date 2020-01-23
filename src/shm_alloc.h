@@ -61,13 +61,13 @@ void   ptr_free(void *ptr);
  * To get the address in the current process with the help
  * of offset.
  */
-#define SHM_OFFT_TO_ADDR(offset) ((uint8_t *)get_shm_user_base() + offset)
+#define SHM_OFFT_TO_ADDR(offset) ((void *)((uint8_t *)get_shm_user_base() + offset))
 
 /*
  * To get the address in the current process with the help
  * of offset.
  */
-#define SHM_ADDR_TO_OFFT(address) ((uint8_t *)address - (uint8_t *)get_shm_user_base())
+#define SHM_ADDR_TO_OFFT(address) ((shm_offt)((uint8_t *)address - (uint8_t *)get_shm_user_base()))
 
 
 size_t get_shm_max_allocatable_size();
