@@ -32,10 +32,20 @@ void my_free(void *ptr)
 
 int main()
 {
+
+	char *tmp_shm_file = "temp_shm_file";
+	bool retval;
+
+
 	/*
 	 * Initialize shm
 	 */
-	shm_init(NULL);
+	retval = shm_init(NULL, tmp_shm_file);
+
+	if (retval == false) {
+		fprintf(stderr, "shm_init() failed!");
+		exit(EXIT_FAILURE);
+	}
 
 	char *str;
 	size_t string_len = 100;
@@ -56,6 +66,9 @@ int main()
 
 	/* release resources held by shared memory */
 	shm_deinit();
+
+	/* User's responsibilty to delete file after use */
+	remove(tmp_shm_file);
 
 	return 0;
 }

@@ -4,10 +4,20 @@
 
 int main()
 {
+	char *shm_file_name;
+	bool retval;
+
+	shm_file_name = "shm_temp_file";
+
 	/*
 	 * Initialize shm
 	 */
-	shm_init(NULL);
+	retval = shm_init(NULL, shm_file_name);
+
+	if (retval == false) {
+		fprintf(stderr, "shm_init() failed!");
+		exit(EXIT_FAILURE);
+	}
 
 	shm_offt str;
 
@@ -37,6 +47,9 @@ int main()
 
 	/* release resources held by shared memory */
 	shm_deinit();
+
+	/* User's responsibilty to delete the file after usage */
+	remove(shm_file_name);
 
 	return 0;
 }
