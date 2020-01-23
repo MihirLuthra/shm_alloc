@@ -227,7 +227,7 @@ bool shm_init(void *optional_addr, const char *shm_filename)
 	shm_bitmap old_bmp, new_bmp, set_mask;
 
 	if (manager != NULL) {
-		return (false);
+		return (true);
 	}
 
 #ifndef NDEBUG
