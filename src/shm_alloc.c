@@ -414,18 +414,30 @@ size_t get_shm_min_allocatable_size()
 
 void * get_shm_user_base(void)
 {
-	static void * base = NULL;
 
 	if (manager == NULL) {
 		P_ERR("manager == NULL");
 		return (NULL);
 	}
 
-	if (base == NULL) {
-		base = ACCESS_SHM_FOR_USER(0);
+#if ATOMIC_POINTER_LOCK_FREE == 2
+	/*
+	 * Well basically this function is equivalent to ACCESS_SHM_FOR_USER(0)
+	 * We do the crap below to store the value of ACCESS_SHM_FOR_USER(0)
+	 * so that subsequent calls don't need to call ACCESS_SHM_FOR_USER(0)
+	 */
+
+	static _Atomic(void *) base = NULL;
+
+	if (atomic_load(&base) == NULL) {
+		void *old_val = NULL;
+		atomic_compare_exchange_strong(&base, &old_val, ACCESS_SHM_FOR_USER(0));
 	}
 
-	return (base);
+	return (atomic_load(&base));
+#else
+	return (ACCESS_SHM_FOR_USER(0));
+#endif
 }
 
 shm_offt shm_malloc(size_t size)
