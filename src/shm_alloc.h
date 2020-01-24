@@ -72,5 +72,6 @@ void   ptr_free(void *ptr);
 
 size_t get_shm_max_allocatable_size();
 size_t get_shm_min_allocatable_size();
+size_t get_sizeof_block_header();
 
 #endif /* __SHM_ALLOC_H__ */

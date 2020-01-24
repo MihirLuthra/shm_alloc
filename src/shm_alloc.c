@@ -399,7 +399,12 @@ void shm_deinit()
 
 size_t get_shm_max_allocatable_size()
 {
-	return (MAX_ALLOCATABLE_SIZE - sizeof(struct blk_hdr));
+	return (MAX_ALLOCATABLE_SIZE);
+}
+
+size_t get_sizeof_block_header()
+{
+	return (sizeof(struct blk_hdr));
 }
 
 size_t get_shm_min_allocatable_size()
@@ -486,7 +491,7 @@ void *ptr_malloc(size_t size)
 		return (NULL);
 	}
 
-	return ((uint8_t *)get_shm_user_base() + offt_in_shm);
+	return (SHM_OFFT_TO_ADDR(offt_in_shm));
 }
 
 
@@ -500,7 +505,7 @@ void *ptr_calloc(size_t count, size_t size)
 		return (NULL);
 	}
 
-	return ((uint8_t *)get_shm_user_base() + offt_in_shm);
+	return (SHM_OFFT_TO_ADDR(offt_in_shm));
 }
 
 void ptr_free(void *ptr)
