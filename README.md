@@ -7,35 +7,23 @@
 	<li><a href="#when-to-use">When to use?</a></li>
 	<li><a href="#tested-on">Tested on</a></li>
 	<li><a href="#use-case">Use case</a></li>
-	<li><a href="#quick-and-short-example">Quick and short example</a></li>
-	<li><a href="#how-to-use">How to use?</a></li>
-	<li><a href="#source-code-explanation">Source code explanation</a></li>
+	<li><a href="example/">Quick and short example</a></li>
+	<li><a href="docs/how_to_use.md">How to use?</a></li>
+	<li><a href="docs/man.md">Manpage</a></li>
+	<li><a href="docs/source_code_explanation.md">Source code explanation</a></li>
 </ul>
 
 # What is it?
 
-A shared memory cache allocation library that provides 3 main functions:
-
-<ul>
-	<li>
-		shm_malloc()
-	</li>
-	<li>
-		shm_calloc()
-	</li>
-	<li>
-		shm_free()
-	</li>
-</ul>
-
-
+A shared memory allocation library that mainly provides <a href="docs/man.md#shm_malloc"><code>shm_malloc()</code></a>,
+<a href="docs/man.md#shm_calloc"><code>shm_calloc()</code></a> and <a href="docs/man.md#shm_free"><code>shm_free()</code></a>.
 <ol>
     <li>
         They are to be used just like <code>malloc(2)</code>, <code>calloc(2)</code> and <code>free(2)</code> except that they 
         allocate space in shared memory and return offset from the start of shared memory instead.
     </li>
     <li>
-        The shared memory is just a regular file which is <code>mmap(2)</code>'d into the processes' address space. This is done in <code>shm_init()</code>.
+        The shared memory is just a regular file which is <code>mmap(2)</code>'d into the processes' address space. This is done in <a href="docs/man.md#shm_init"><code>shm_init()</code></a>.
     </li>
     <li>
         The shared memory is divided into small blocks and allocation of each block is managed by a buddy system in form of 
@@ -49,7 +37,7 @@ A shared memory cache allocation library that provides 3 main functions:
 <ol>
     <li>
         It uses C11's atomic library. It has been ensured that this branch works with <code>(_POSIX_C_SOURCE >= 200809L)</code>.
-		It uses gcc/clang extensions if available.
+	It uses gcc/clang extensions if available.
     </li>
 	<li>
 		If you are ok with allocating memory in a certain range. e.g., our use case would let us allocate memory
@@ -95,57 +83,17 @@ A shared memory cache allocation library that provides 3 main functions:
 
 # Quick and short example
 
-<pre>
-//
-// example.c
-//
-#include "shm_alloc.h"
-#include &ltstdlib.h&gt
-#include &ltstring.h&gt
-
-#define PTR(type)             shm_offt
-#define ACCESS(offset, type)  ((type *)((uint8_t *)get_shm_user_base() + (offset)))
-
-int main()
-{
-	shm_init();
-	PTR(char) str;<br>
-	size_t string_len = 100;
-	str = shm_calloc(string_len, sizeof(char));<br>
-	if (str == SHM_NULL) {
-		fprintf(stderr, "Out of memory\n");
-		exit(EXIT_FAILURE);
-	}<br>
-	strcpy(ACCESS(str, char), "My test string!");<br>
-	printf("%s\n", ACCESS(str, char));<br>
-	shm_free(str);<br>
-	shm_deinit();
-	return 0;
-}
-</pre>
-
-Then,
-On mac:
-<pre>
-cd &ltrepository_path&gt/shm_alloc/src && make
-export SHM_FILE="/tmp/example_shm_file"
-export DYLD_FALLBACK_LIBRARY_PATH="&ltrepository_path&gt/shm_alloc/src/:$DYLD_FALLBACK_LIBRARY_PATH"
-clang -I&ltrepository_path&gt/shm_alloc/src/ example.c -L&ltrepository_path&gt/shm_alloc/src/ -lshm_alloc
-</pre>
-
-On linux:
-<pre>
-cd &ltrepository_path&gt/shm_alloc/src && make
-export SHM_FILE="/tmp/example_shm_file"
-export LD_LIBRARY_PATH="&ltrepository_path&gt/shm_alloc/src/:$DYLD_FALLBACK_LIBRARY_PATH"
-gcc -I&ltrepository_path&gt/shm_alloc/src/ example.c -L&ltrepository_path&gt/shm_alloc/src/ -lshm_alloc
-</pre>
-
+Find examples in <a href="example">example directory<a>.
 
 # How to use?
 
 Find the instructions to use the library in 
 <a href="docs/how_to_use.md">how_to_use.md<a>
+	
+# Manpage
+
+Find the documentation of all library functions in
+<a href="docs/man.md">man.md<a>
 
 # Source code explanation
 
