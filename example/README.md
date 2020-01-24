@@ -3,6 +3,27 @@
 The examples here are just showing basic usage. How they work in case with multiple processes or threads is tested in <a href="tests/">tests</a>
 and also in some separate programs which are not listed in this repository.
 
+You can source the script <a href="test_init">test_init</a> to
+set library path.
+
+So to test the examples fast:
+
+For <a href="example.c">example.c</a>:
+
+<pre>
+source test_init
+make
+./example.out
+</pre>
+
+For <a href="example_with_ptr.c">example_with_ptr.c</a>:
+
+<pre>
+source test_init
+make example_with_ptr.out
+./example_with_ptr.out
+</pre>
+
 # example.c
 
 <a href="example/example.c#L15">Line 15</a>, we initialize the shared memory:
