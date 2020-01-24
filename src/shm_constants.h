@@ -6,8 +6,6 @@
 #include <stdatomic.h>
 #include <unistd.h>
 
-static _Atomic(int) pagesize = -1;
-
 /*
  * This branch uses a single shm_bitmap variable to implement
  * buddy system.  (MAX_ALLOC_POW2 - MIN_ALLOC_POW2 <= 5) should hold true
@@ -85,7 +83,7 @@ static inline int shm_getpagesize()
 
 static inline shm_offt diff_next_page_boundary(shm_offt offset)
 {
-	pagesize = shm_getpagesize();
+	int pagesize = shm_getpagesize();
 	shm_offt mod_res;
 
 	mod_res  = (offset) % pagesize;
