@@ -123,11 +123,11 @@ int main(int argc, char *argv[])
 
 	/*
 	 * this shared memory allocator can't
-	 * allocate more than get_shm_max_allocatable_size().
+	 * allocate more than get_shm_max_allocatable_size() - get_sizeof_block_header().
 	 * So that's the max string size we will generate.
 	 */
 	min_rand_strlen = 1;
-	max_rand_strlen = get_shm_max_allocatable_size();
+	max_rand_strlen = get_shm_max_allocatable_size() - get_sizeof_block_header();
 
 	rand_str_lower_ascii_limit = 65;
 	rand_str_upper_ascii_limit = 91;
