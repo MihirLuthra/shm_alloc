@@ -51,7 +51,7 @@ export SHM_FILE="path/to/shm/file"
         </ol>
     </li>
 	<li>
-		<h3>Using library functions</h3>
+		<h3>Using library functions[find documentation in <a href="man.md">manpage</a>]</h3>
 		<ol>
 			<li>
 				Include the header <code>shm_alloc.h</code> as:
@@ -121,11 +121,6 @@ void *shm_base = get_shm_user_base();
 					Then access the previously allocated memory as:
 <pre>
 void * mem = (uint8_t *)shm_base + mem_offset;
-</pre>
-					Instead of calling <code>get_shm_user_base()</code>, you can also use the global variable
-					<code>user_shm_base</code> directly as:
-<pre>
-void * mem = user_shm_base + mem_offset;
 </pre>
 			</li>
 			<li>
