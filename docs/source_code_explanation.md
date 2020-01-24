@@ -2,7 +2,7 @@
 The basic working of code goes as follows:
 <ol>
 	<li>
-		File at path given by env variable <code>SHM_FILE</code> is <a href="http://man7.org/linux/man-pages/man2/mmap.2.html"><code>mmap(2)</code></a>'d into process' address space.
+		File at path given by env variable <code>SHM_FILE</code> or as an argument is <a href="http://man7.org/linux/man-pages/man2/mmap.2.html"><code>mmap(2)</code></a>'d into process' address space.
 		If the file doesn't exist it is created. As the file is given its size by <a href="https://linux.die.net/man/2/ftruncate"><code>ftruncate(2)</code></a>,
 		it is initialised with all 0.
 	</li>
@@ -24,8 +24,20 @@ The basic working of code goes as follows:
 <h1>Explanation</h1>
 
 <img src="shared_memory.png" alt="shared memory file structure" width="600" height="400"><br><br><br>
-To start with, consider a file. The file's size is obtained by a <code>get_shm_mapping_size()</code> defined in
-<code>shm_constants.c</code>. The file contains 4 regions just as shown in the image above.
+
+If <a href="man.md#shm_init"><code>shm_init()</code></a> is called in multiple threads, all call <code>mmap(2)</code> and set the mapping values in a 
+temporary <code>struct shm_manager</code> type. In the end they try atomic CAS on a global <code>struct shm_manager</code>
+type.
+
+<pre>
+struct shm_manager {
+    struct mmap_data shm_mapping;
+    struct file_data shm_file;
+};
+</pre>
+
+To start with, consider a file. The file's size is obtained by a <code>SHM_MAPPING_SIZE</code> defined in
+<code>shm_constants.h</code>. The file contains 4 regions just as shown in the image above.
 
 <ul>
 	<li>
