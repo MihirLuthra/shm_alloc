@@ -35,7 +35,7 @@ export LD_LIBRARY_PATH="/path/to/lib:$LD_LIBRARY_PATH"
 		</ol>
 	</li>
     <li>
-        <h3>Set the file to be used for shared memory</h3>
+        <h3>Set the file to be used for shared memory[optional]</h3>
         <ol>
             <li>
 				Set environment variable <code>SHM_FILE</code> to contain path to the file which you would like to use as the 
@@ -75,7 +75,7 @@ export SHM_FILE="path/to/shm/file"
 				<h4>shm_malloc()</h4>
 					To allocate <code>n</code> bytes(where n < max allocatable size) in shared memory:
 <pre>
-assert(n <= get_shm_max_allocatable_size());<br>
+assert(n <= get_shm_max_allocatable_size() + get_sizeof_block_header());<br>
 shm_offt mem_offset = shm_malloc(n);<br>		
 if (mem_offset == SHM_NULL) {
 	//Couldn't get memory
@@ -103,7 +103,7 @@ if (mem_offset == SHM_NULL) {
 				<h4>shm_calloc()</h4>
 					<code>shm_calloc()</code> can be used similarly like shm_malloc():
 <pre>
-assert(n <= get_shm_max_allocatable_size());<br>
+assert(n <= get_shm_max_allocatable_size() + get_sizeof_block_header());<br>
 shm_offt mem_offset = shm_calloc(1, n);<br>		
 if (mem_offset == SHM_NULL) {
 	//Couldn't get memory
@@ -178,23 +178,27 @@ make USER_FLAGS='-D MAX_ALLOCATABLE_SHM_SIZE=&lt;new_size&gt;'
 	</li>
 	<li>
 		<h3>Making code readable</h3>
-		One way to make code readable is:
+		Preferred way would be to use wrappers <a href="man.md#ptr_malloc"><code>ptr_malloc()</code></a>,
+		<a href="man.md#ptr_calloc"><code>ptr_calloc</code></a> and <a href="man.md#ptr_free"><code>ptr_free()</code></a>.
 <pre>
-#define PTR(type)             shm_offt
-#define ACCESS(offset, type)  ((type *)((uint8_t *)get_shm_user_base() + (offset)))
-</pre>
-		Usage example:
-<pre>
-PTR(char) str;<br>
+char *str;
 size_t string_len = 100;
-str = shm_calloc(string_len, sizeof(char));<br>
-if (str == SHM_NULL) {
-    fprintf(stderr, "Out of memory\n");
-    exit(EXIT_FAILURE);
-}<br>
-strcpy(ACCESS(str, char), "My test string!");<br>
-printf("%s\n", ACCESS(str, char));
+str = ptr_malloc(string_len);<br>
+if (str == NULL) {
+    fprintf(stderr, "ptr_malloc(): out of memory");
+}
 </pre>
-	This is one way to use it, better ways are always there.
+		For example, you are dealing with a shared memory
+		linked list that looks like:
+<pre>
+struct llist {
+    int data;
+    shm_offt next;
+};
+</pre>
+<pre>
+struct llist lnode;
+lnode.next = SHM_ADDR_TO_OFFT(str); // would extract the offset and store
+</pre>
 	</li>
 </ol>
