@@ -13,7 +13,7 @@ void *my_calloc(size_t count, size_t size)
 		return (NULL);
 	}
 
-	return ((uint8_t *)get_shm_user_base() + offt_in_shm);
+	return (SHM_OFFT_TO_ADDR(offt_in_shm));
 }
 
 /* same as ptr_free() */
