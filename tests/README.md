@@ -52,18 +52,17 @@ The random strings are stored in a global array. A global counter is present whi
 In the test each thread extracts the value of global counter and increments the counter atomically. For the random string at the index given by the extracted value of counter, following operions are performed:
 
 The threads allocates memory in the shared memory region and stores the random string in it.
-The data about the random string(its index in array and offset in shared memory) is stored in an atomic queue(by 
-`OSAtomicFifoEnqueue()`). Then an element is dequed from the atomic queue. The atomic queue is global, so it's common for all 
-threads. As per the dequed data, the offset is accessed in shared memory and compared with the string in the array for 
+The data about the random string(its index in array and offset in shared memory) is stored in an atomic stack.
+Then an element is popped from the atomic stack. The atomic stack is global, so it's common for all 
+threads. As per the popped data, the offset is accessed in shared memory and compared with the string in the array for 
 checking correctness. If the data is incorrect, test failed, else this string is freed from the shared memory "randomly"(just 
-generating a random num; if divisble by 3 then free). If it doesn't get freed, the data about this random string in enqued
-back into the atomic queue. After this, next iteration starts and this sequence continues until global counter is equal to
+generating a random num; if divisble by 3 then free). If it doesn't get freed, the data about this random string in pushed
+back into the atomic stack. After this, next iteration starts and this sequence continues until global counter is equal to
 `max_idx-1`.
 
 Freeing randomly lets the data last in shared memory for long and helps in checking correctness.
 
-On systems other than `macOS` where `OSAtomicFifoEnqueue()` is not available, `lfstack` submodule is used. The former is
-fifo and the latter is lifo, rest is almost the same.
+For the atomic stack, `lfstack` submodule is used.
 
 The test is pretty accurate, but check it multiple number of times with different arguments of 
 for rarely occuring failures.
