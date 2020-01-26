@@ -40,8 +40,8 @@
 #			define __BUILTIN_FFS(num)		builtin_alternative_ffsl(num)
 
 #			ifdef __has_builtin
-#				undef __BUILTIN_FFS
 #				if __has_builtin(__builtin_ffsl)
+#					undef __BUILTIN_FFS
 #					define __BUILTIN_FFS(num)  __builtin_ffsl(num)
 #				endif
 #			endif
@@ -53,8 +53,8 @@
 #			define __BUILTIN_FFS(num)       ffs(num)
 
 #			ifdef __has_builtin
-#				undef __BUILTIN_FFS
 #				if __has_builtin(__builtin_ffs)
+#					undef __BUILTIN_FFS
 #					define __BUILTIN_FFS(num)  __builtin_ffs(num)
 #				endif
 #			endif
