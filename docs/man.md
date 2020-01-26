@@ -109,6 +109,13 @@ for the header.
 
 Returns the shared memory base for the current process where the allocations are done. Its return value should be casted to
 <code>uint8_t *</code> and added to an offset returned by <code>shm_malloc()</code> or <code>shm_calloc()</code> to access it.
+Prefer using macros <code>SHM_OFFT_TO_ADDR(offset)</code> and <code>SHM_ADDR_TO_OFFT(address)</code> for clarity.
+The macros are defined as follows:
+
+<pre>
+#define SHM_OFFT_TO_ADDR(offset) ((void *)((uint8_t *)get_shm_user_base() + offset))<br>
+#define SHM_ADDR_TO_OFFT(address) ((shm_offt)((uint8_t *)address - (uint8_t *)get_shm_user_base()))
+</pre>
 
 <br>
 
@@ -208,21 +215,24 @@ Frees memory in shared memory.
 	</li>
 </ul>
 
+<br>
 
 <h4>ptr_malloc():</h4>
 
 Allocates memory in shared memory. Some extra memory is allocated for header aswell. That extra size can be obtained by <code>get_sizeof_block_header()</code>
 It is just a wrapper around <code>shm_malloc()</code>.
-It allocates via <code>shm_malloc()</code> in the shared memory, and returns SHM_OFFT_TO_ADDR(offset).
+It allocates via <code>shm_malloc()</code> in the shared memory, and returns the location of allocated memory in the current process,
+i.e., it uses <code>SHM_OFFT_TO_ADDR(offset)</code> internally to compute address as per the offset.
 If <code>shm_malloc()</code> returns <code>SHM_NULL</code>, then <code>ptr_malloc()</code> returns <code>NULL</code>.
 
 <br>
 
 <h4>ptr_calloc():</h4>
 
-Allocates memory in shared memory and sets it to all zero. That extra size can be obtained by <code>get_sizeof_block_header()</code>
+Allocates memory in shared memory and sets it to all zero. Some extra memory is allocated for header aswell. That extra size can be obtained by <code>get_sizeof_block_header()</code>
 It is just a wrapper around <code>shm_calloc()</code>.
-It allocates via <code>shm_calloc()</code> in the shared memory, and returns SHM_OFFT_TO_ADDR(offset).
+It allocates via <code>shm_calloc()</code> in the shared memory, and returns the location of allocated memory in the current process,
+i.e., it uses <code>SHM_OFFT_TO_ADDR(offset)</code> internally to compute address as per the offset.
 If <code>shm_calloc()</code> returns <code>SHM_NULL</code>, then <code>ptr_calloc()</code> returns <code>NULL</code>.
 
 <br>
@@ -230,8 +240,8 @@ If <code>shm_calloc()</code> returns <code>SHM_NULL</code>, then <code>ptr_callo
 <h4>ptr_free():</h4>
 
 Frees memory in shared memory.
-It is just a wrapper around <code>shm_free()</code>.
-It calls <code>shm_free()</code> with argument as </code>SHM_ADDR_TO_OFFT(ptr)</code>
+It is just a wrapper around <code>shm_free()</code>. It computes the offset in shared memory by </code>SHM_ADDR_TO_OFFT(address)</code>
+and calls <code>shm_free()</code>.
 
 
 <h2>RETURN VALUES</h2>
