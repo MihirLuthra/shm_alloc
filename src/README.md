@@ -8,15 +8,13 @@
 
 <strong>shm_bit_fiddler.h</strong> : Contains inline functions for bit manipulation
 
-<strong>shm_constants.c</strong> : Contains code for setting shm_null and computing the offsets and 
-sizes of various region in shared memory(like allocatable region, shm null etc).
-
-<strong>shm_constants.h</strong> : Contains constants that are set before compiling(like `MAX_ALLOC_POW2`).
+<strong>shm_constants.h</strong> : Contains constants that are set before compiling(like `MAX_ALLOC_POW2`) and inline getters.
 
 <strong>shm_debug.(c|h)</strong> : This is for debugging "this code".
 
 <strong>shm_err.h</strong> : Contains macro definitions for printing errors.
 
-<strong>shm_types.h</strong> : It only contains type definitions that are used in the shm code and are not for the user.
+<strong>shm_types.h</strong> : It contains type definitions that are used in the shm code.
 
-<strong>shm_user_types.h</strong> : It only contains type definitions that are accessible by the user.
+<strong>shm_user_types.h</strong> : It only contains type definitions and constants that are visible to user as well. It is 
+as subset of <strong>shm_types.h</strong> and is included in it.
