@@ -75,6 +75,25 @@ void<br>
 
 <br>
 
+<h4>shm_offt</h4>
+<ul>
+	<li>
+		It is used to hold an offset in shared memory.
+	</li>
+	<li>
+		It is an unsigned type.
+	</li>
+	<li>
+		It is always atomic.
+	</li>
+	<li>
+		Format specifier for printing it is <code>PRIu_shm_offt</code>
+		e.g., <code>printf("%" PRIu_shm_offt "\n", offset);</code>
+	</li>
+</ul>
+
+<br>
+
 <h4>get_mapping_size_needed_by_shm():</h4>
 
 It returns the mapping space that would be required by the shared memory. It can be called before <code>shm_init()</code>.
