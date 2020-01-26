@@ -6,6 +6,7 @@
 	<li><a href="#what-is-it">What is it?</a></li>
 	<li><a href="#when-to-use">When to use?</a></li>
 	<li><a href="#tested-on">Tested on</a></li>
+	<li><a href="#important-notes-for-optimisation">Important Notes For Optimisation</a></li>
 	<li><a href="#use-case">Use case</a></li>
 	<li><a href="example/">Quick and short example</a></li>
 	<li><a href="docs/how_to_use.md">How to use?</a></li>
@@ -60,6 +61,23 @@ A shared memory allocation library that mainly provides <a href="docs/man.md#shm
 <ol>
 	<li>macOS Catalina</li>
 	<li>Ubuntu 18.04(with and without -m32)</li>
+</ol>
+
+# Important Notes For Optimisation
+
+<ol>
+	<li>
+		It is a good idea to have shared memory file in file system made by <code>tmpfs</code>.
+		There are many alternatives for <code>macOS</code> which you can find by googling.
+	</li>
+	<li>
+		<code>malloc(2)</code> has the privilege of using huge pages which makes it faster
+		because of TLB. But in case of <code>shm_malloc()</code> that uses <code>mmap(2)</code>
+		with <code>MAP_SHARED</code> doesn't have huge page support.<br>
+		The starting point of shared memory is page aligned. Afterwards, there are blocks
+		whose size can be altered by you(see <a href="docs/how_to_use.md#changing-default-settings">changing defaults section</a>).
+		By default max size is 1024 bytes. So if page size is 4096, 4 blocks of memory constitute a single page.
+	</li>
 </ol>
 
 # Use case
