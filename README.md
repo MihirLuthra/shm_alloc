@@ -38,7 +38,9 @@ A shared memory allocation library that mainly provides <a href="docs/man.md#shm
 <ol>
     <li>
         It uses C11's atomic library. It has been ensured that this branch works with <code>(_POSIX_C_SOURCE >= 200809L)</code>.
-	It uses gcc/clang extensions if available.
+		It uses gcc/clang extensions if available. The Makefile used to build the code in NOT posix compatible. The user will
+		will have to rely on their own build system if needed. The current Makefile has only been tested on macOS Catalina and
+		ubuntu 18.04. As far as I remember, current Makefile failed on FreeBSD.
     </li>
 	<li>
 		If you are ok with allocating memory in a certain range. e.g., our use case would let us allocate memory
